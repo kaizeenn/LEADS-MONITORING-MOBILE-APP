@@ -1,153 +1,109 @@
-import '../database/database_helper.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/leads_model.dart';
 
 class ReportService {
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  static const String apiBaseUrl = 'http://localhost:3000/api';
 
   // Fetch all leads with details
-  Future<List<LeadsModel>> getLeadsWithDetails() async {
-    final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT l.*, w.nama_wilayah, s.nama_sumber
-      FROM leads l
-      JOIN wilayah w ON l.wilayah_id = w.id
-      JOIN sumber_leads s ON l.sumber_id = s.id
-      ORDER BY l.tanggal DESC, l.id DESC
-    ''');
-    return List.generate(maps.length, (i) => LeadsModel.fromMap(maps[i]));
+  Future<List<LeadsModel>> getLeadsWithDetails(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/leads'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => LeadsModel.fromMap(e)).toList();
+      } else {
+        throw Exception('Failed to load leads from server');
+      }
+    } catch (e) {
+      print('Error in getLeadsWithDetails: $e');
+      return [];
+    }
   }
 
   // Fetch filtered leads
-  Future<List<LeadsModel>> getFilteredLeads({
+  Future<List<LeadsModel>> getFilteredLeads(
+    String token, {
     String? startDate,
     String? endDate,
     int? wilayahId,
     int? sumberId,
   }) async {
-    final db = await _dbHelper.database;
-    
-    String whereClause = '1=1';
-    List<dynamic> whereArgs = [];
+    try {
+      final queryParams = <String>[];
+      if (startDate != null) queryParams.add('startDate=$startDate');
+      if (endDate != null) queryParams.add('endDate=$endDate');
+      if (wilayahId != null) queryParams.add('wilayah_id=$wilayahId');
+      if (sumberId != null) queryParams.add('sumber_id=$sumberId');
 
-    if (startDate != null) {
-      whereClause += ' AND l.tanggal >= ?';
-      whereArgs.add(startDate);
-    }
-    if (endDate != null) {
-      whereClause += ' AND l.tanggal <= ?';
-      whereArgs.add(endDate);
-    }
-    if (wilayahId != null) {
-      whereClause += ' AND l.wilayah_id = ?';
-      whereArgs.add(wilayahId);
-    }
-    if (sumberId != null) {
-      whereClause += ' AND l.sumber_id = ?';
-      whereArgs.add(sumberId);
-    }
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
 
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT l.*, w.nama_wilayah, s.nama_sumber
-      FROM leads l
-      JOIN wilayah w ON l.wilayah_id = w.id
-      JOIN sumber_leads s ON l.sumber_id = s.id
-      WHERE $whereClause
-      ORDER BY l.tanggal DESC, l.id DESC
-    ''', whereArgs);
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/leads$queryString'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    return List.generate(maps.length, (i) => LeadsModel.fromMap(maps[i]));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => LeadsModel.fromMap(e)).toList();
+      } else {
+        throw Exception('Failed to load filtered leads from server');
+      }
+    } catch (e) {
+      print('Error in getFilteredLeads: $e');
+      return [];
+    }
   }
 
   // Get dashboard statistics
-  Future<Map<String, dynamic>> getDashboardStats() async {
-    final db = await _dbHelper.database;
-    final now = DateTime.now();
-    final todayStr = _formatDate(now);
-    final monthPrefix = '${now.year}-${now.month.toString().padLeft(2, '0')}-%';
-    final yearPrefix = '${now.year}-%';
+  Future<Map<String, dynamic>> getDashboardStats(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/dashboard'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    // Today's total
-    final todayRes = await db.rawQuery('SELECT SUM(jumlah) as total FROM leads WHERE tanggal = ?', [todayStr]);
-    final todayTotal = todayRes.first['total'] as int? ?? 0;
-
-    // Month's total
-    final monthRes = await db.rawQuery('SELECT SUM(jumlah) as total FROM leads WHERE tanggal LIKE ?', [monthPrefix]);
-    final monthTotal = monthRes.first['total'] as int? ?? 0;
-
-    // Year's total
-    final yearRes = await db.rawQuery('SELECT SUM(jumlah) as total FROM leads WHERE tanggal LIKE ?', [yearPrefix]);
-    final yearTotal = yearRes.first['total'] as int? ?? 0;
-
-    // Best Wilayah
-    final bestWilayahRes = await db.rawQuery('''
-      SELECT w.nama_wilayah, SUM(l.jumlah) as total
-      FROM leads l
-      JOIN wilayah w ON l.wilayah_id = w.id
-      GROUP BY l.wilayah_id
-      ORDER BY total DESC LIMIT 1
-    ''');
-    final bestWilayah = bestWilayahRes.isNotEmpty ? bestWilayahRes.first['nama_wilayah'] as String : '-';
-
-    // Best Sumber
-    final bestSumberRes = await db.rawQuery('''
-      SELECT s.nama_sumber, SUM(l.jumlah) as total
-      FROM leads l
-      JOIN sumber_leads s ON l.sumber_id = s.id
-      GROUP BY l.sumber_id
-      ORDER BY total DESC LIMIT 1
-    ''');
-    final bestSumber = bestSumberRes.isNotEmpty ? bestSumberRes.first['nama_sumber'] as String : '-';
-
-    // Daily trend (last 7 days)
-    List<String> dates = [];
-    for (int i = 6; i >= 0; i--) {
-      dates.add(_formatDate(now.subtract(Duration(days: i))));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        return {
+          'today_total': data['todayTotal'] as int? ?? 0,
+          'month_total': data['monthTotal'] as int? ?? 0,
+          'year_total': data['yearTotal'] as int? ?? 0,
+          'best_wilayah': data['bestWilayah'] as String? ?? '-',
+          'best_sumber': data['bestSumber'] as String? ?? '-',
+          'daily_trend': List<Map<String, dynamic>>.from(data['dailyTrend'] ?? []),
+          'wilayah_chart': List<Map<String, dynamic>>.from(data['wilayahChart'] ?? []),
+          'sumber_chart': List<Map<String, dynamic>>.from(data['sumberChart'] ?? []),
+        };
+      } else {
+        throw Exception('Failed to load dashboard stats');
+      }
+    } catch (e) {
+      print('Error in getDashboardStats: $e');
+      return {
+        'today_total': 0,
+        'month_total': 0,
+        'year_total': 0,
+        'best_wilayah': '-',
+        'best_sumber': '-',
+        'daily_trend': <Map<String, dynamic>>[],
+        'wilayah_chart': <Map<String, dynamic>>[],
+        'sumber_chart': <Map<String, dynamic>>[],
+      };
     }
-
-    List<Map<String, dynamic>> dailyTrend = [];
-    for (final d in dates) {
-      final res = await db.rawQuery('SELECT SUM(jumlah) as total FROM leads WHERE tanggal = ?', [d]);
-      final total = res.first['total'] as int? ?? 0;
-      final parts = d.split('-');
-      final shortDate = '${parts[2]}/${parts[1]}';
-      dailyTrend.add({
-        'date': d,
-        'label': shortDate,
-        'total': total,
-      });
-    }
-
-    // Top Wilayah (Bar Chart Data)
-    final wilayahChartRes = await db.rawQuery('''
-      SELECT w.nama_wilayah, SUM(l.jumlah) as total
-      FROM leads l
-      JOIN wilayah w ON l.wilayah_id = w.id
-      GROUP BY l.wilayah_id
-      ORDER BY total DESC
-    ''');
-    
-    // Top Sumber (Pie Chart Data)
-    final sumberChartRes = await db.rawQuery('''
-      SELECT s.nama_sumber, SUM(l.jumlah) as total
-      FROM leads l
-      JOIN sumber_leads s ON l.sumber_id = s.id
-      GROUP BY l.sumber_id
-      ORDER BY total DESC
-    ''');
-
-    return {
-      'today_total': todayTotal,
-      'month_total': monthTotal,
-      'year_total': yearTotal,
-      'best_wilayah': bestWilayah,
-      'best_sumber': bestSumber,
-      'daily_trend': dailyTrend,
-      'wilayah_chart': wilayahChartRes,
-      'sumber_chart': sumberChartRes,
-    };
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

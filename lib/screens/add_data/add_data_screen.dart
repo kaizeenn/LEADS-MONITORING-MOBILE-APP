@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/leads_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/custom_dropdown.dart';
 import '../../widgets/custom_button.dart';
 import '../../core/theme/app_colors.dart';
@@ -72,7 +73,9 @@ class _AddDataScreenState extends State<AddDataScreen> {
 
     final leadsProvider = context.read<LeadsProvider>();
     final df = DateFormat('yyyy-MM-dd');
+    final token = context.read<AuthProvider>().token ?? '';
     final success = await leadsProvider.addLead(
+      token,
       wilayahId: _selectedWilayahId!,
       sumberId: _selectedSumberId!,
       tanggal: df.format(_selectedDate),
@@ -164,7 +167,8 @@ class _AddDataScreenState extends State<AddDataScreen> {
                           onPressed: () async {
                             if (!formKey.currentState!.validate()) return;
                             final name = textController.text.trim();
-                            final success = await provider.addWilayah(name);
+                            final token = context.read<AuthProvider>().token ?? '';
+                            final success = await provider.addWilayah(token, name);
                             if (success) {
                               textController.clear();
                               ScaffoldMessenger.of(ctx).showSnackBar(
@@ -229,7 +233,8 @@ class _AddDataScreenState extends State<AddDataScreen> {
 
                                     if (confirm == true) {
                                       try {
-                                        final success = await provider.deleteWilayah(w.id!);
+                                        final token = context.read<AuthProvider>().token ?? '';
+                                        final success = await provider.deleteWilayah(token, w.id!);
                                         if (success) {
                                           if (_selectedWilayahId == w.id) {
                                             setState(() {

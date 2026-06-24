@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/summary_card.dart';
 import '../../widgets/chart_card.dart';
 import '../../core/theme/app_colors.dart';
@@ -17,7 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardProvider>().refreshDashboard();
+      final token = context.read<AuthProvider>().token ?? '';
+      context.read<DashboardProvider>().refreshDashboard(token);
     });
   }
 
@@ -55,7 +57,10 @@ class _HomeScreenState extends State<HomeScreen> {
           final hasData = dailyTrend.isNotEmpty || wilayahChart.isNotEmpty || sumberChart.isNotEmpty;
 
           return RefreshIndicator(
-            onRefresh: () => provider.refreshDashboard(),
+            onRefresh: () {
+              final token = context.read<AuthProvider>().token ?? '';
+              return provider.refreshDashboard(token);
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),

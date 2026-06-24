@@ -4,6 +4,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/leads_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/laporan_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -33,6 +34,7 @@ class SettingsScreen extends StatelessWidget {
     final leadsProvider = context.read<LeadsProvider>();
     final dashboardProvider = context.read<DashboardProvider>();
     final laporanProvider = context.read<LaporanProvider>();
+    final authProvider = context.read<AuthProvider>();
 
     try {
       final backupData = await settingsProvider.pickAndValidateBackup();
@@ -84,9 +86,10 @@ class SettingsScreen extends StatelessWidget {
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
                   if (success) {
-                    await leadsProvider.loadInitialData();
-                    await dashboardProvider.refreshDashboard();
-                    await laporanProvider.loadReport();
+                    final token = authProvider.token ?? '';
+                    await leadsProvider.loadInitialData(token);
+                    await dashboardProvider.refreshDashboard(token);
+                    await laporanProvider.loadReport(token);
 
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -115,6 +118,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<SettingsProvider>();
+    final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -125,10 +129,40 @@ class SettingsScreen extends StatelessWidget {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // User Profile Section
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 10),
                   child: Text(
-                    'Pencadangan & Pemulihan',
+                    'Akun Pengguna',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onBackground,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+                Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.primary.withOpacity(0.08),
+                      child: Text(
+                        authProvider.userName.substring(0, 2).toUpperCase(),
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    title: Text(authProvider.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    subtitle: Text('${authProvider.userEmail} • ${authProvider.userRole.toUpperCase()}', style: const TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // System Actions Section
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 10),
+                  child: Text(
+                    'Pencadangan & Sesi',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -172,6 +206,46 @@ class SettingsScreen extends StatelessWidget {
                         subtitle: const Text('Import database dari file backup JSON', style: TextStyle(fontSize: 12.5)),
                         trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
                         onTap: () => _runRestore(context),
+                      ),
+                      const Divider(height: 1, indent: 68),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.danger.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.logout_rounded, color: AppColors.danger, size: 20),
+                        ),
+                        title: const Text('Keluar Akun', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.danger)),
+                        subtitle: const Text('Keluar dari sesi login saat ini', style: TextStyle(fontSize: 12.5)),
+                        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                        onTap: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogCtx) => AlertDialog(
+                              title: const Text('Keluar Akun'),
+                              content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogCtx, false),
+                                  child: const Text('Batal'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogCtx, true),
+                                  child: const Text('Keluar', style: TextStyle(color: AppColors.danger)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            if (context.mounted) {
+                              context.read<AuthProvider>().logout();
+                            }
+                          }
+                        },
                       ),
                     ],
                   ),

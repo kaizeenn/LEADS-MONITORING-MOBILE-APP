@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/leads_model.dart';
 import '../../providers/leads_provider.dart';
 import '../../providers/laporan_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/custom_dropdown.dart';
 import '../../widgets/chart_card.dart';
 import '../../widgets/empty_state.dart';
@@ -27,7 +28,8 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LaporanProvider>().loadReport();
+      final token = context.read<AuthProvider>().token ?? '';
+      context.read<LaporanProvider>().loadReport(token);
     });
   }
 
@@ -46,7 +48,8 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     );
     if (picked != null) {
       provider.setStartDate(picked);
-      provider.loadReport();
+      final token = context.read<AuthProvider>().token ?? '';
+      provider.loadReport(token);
     }
   }
 
@@ -59,7 +62,8 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     );
     if (picked != null) {
       provider.setEndDate(picked);
-      provider.loadReport();
+      final token = context.read<AuthProvider>().token ?? '';
+      provider.loadReport(token);
     }
   }
 
@@ -222,12 +226,13 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
                       createdAt: lead.createdAt,
                     );
 
-                    final success = await leadsProvider.updateLead(updated);
+                    final token = context.read<AuthProvider>().token ?? '';
+                    final success = await leadsProvider.updateLead(token, updated);
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Data leads berhasil diupdate!'), backgroundColor: AppColors.success),
                       );
-                      laporanProvider.loadReport();
+                      laporanProvider.loadReport(token);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Gagal mengupdate data leads.'), backgroundColor: AppColors.danger),
@@ -263,12 +268,13 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
             TextButton(
               onPressed: () async {
                 Navigator.pop(ctx);
-                final success = await leadsProvider.deleteLead(lead.id!);
+                final token = context.read<AuthProvider>().token ?? '';
+                final success = await leadsProvider.deleteLead(token, lead.id!);
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Data leads berhasil dihapus!'), backgroundColor: AppColors.success),
                   );
-                  laporanProvider.loadReport();
+                  laporanProvider.loadReport(token);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Gagal menghapus data leads.'), backgroundColor: AppColors.danger),
@@ -514,7 +520,8 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
                         ],
                         onChanged: (val) {
                           laporanProvider.setWilayahId(val);
-                          laporanProvider.loadReport();
+                          final token = context.read<AuthProvider>().token ?? '';
+                          laporanProvider.loadReport(token);
                         },
                       ),
                     ),
@@ -538,7 +545,8 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
                         ],
                         onChanged: (val) {
                           laporanProvider.setSumberId(val);
-                          laporanProvider.loadReport();
+                          final token = context.read<AuthProvider>().token ?? '';
+                          laporanProvider.loadReport(token);
                         },
                       ),
                     ),

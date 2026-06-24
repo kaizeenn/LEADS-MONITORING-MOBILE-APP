@@ -24,12 +24,12 @@ class DashboardProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get sumberChart => _sumberChart;
   bool get isLoading => _isLoading;
 
-  Future<void> refreshDashboard() async {
+  Future<void> refreshDashboard(String token) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final stats = await _reportService.getDashboardStats();
+      final stats = await _reportService.getDashboardStats(token);
       _todayTotal = stats['today_total'] as int? ?? 0;
       _monthTotal = stats['month_total'] as int? ?? 0;
       _yearTotal = stats['year_total'] as int? ?? 0;

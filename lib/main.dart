@@ -7,7 +7,9 @@ import 'providers/leads_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/laporan_provider.dart';
 import 'providers/settings_provider.dart';
-import 'routes/app_routes.dart';
+import 'providers/auth_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'core/theme/app_theme.dart';
 
 void main() {
@@ -22,6 +24,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LeadsProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => LaporanProvider()),
@@ -50,9 +53,42 @@ class LeadsMonitoringApp extends StatelessWidget {
       title: 'Leads Monitoring App',
       theme: AppTheme.lightTheme,
       scrollBehavior: MyCustomScrollBehavior(),
-      initialRoute: AppRoutes.initial,
-      routes: AppRoutes.routes,
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().tryAutoLogin();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    
+    if (auth.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!auth.isAuthenticated) {
+      return const LoginScreen();
+    }
+
+    return const MainNavigationScreen();
   }
 }

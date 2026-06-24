@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/leads_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/laporan_provider.dart';
+import '../providers/auth_provider.dart';
 import 'home/home_screen.dart';
 import 'add_data/add_data_screen.dart';
 import 'laporan/laporan_screen.dart';
@@ -30,7 +31,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LeadsProvider>().loadInitialData();
+      final token = context.read<AuthProvider>().token ?? '';
+      context.read<LeadsProvider>().loadInitialData(token);
     });
   }
 
@@ -39,11 +41,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _currentIndex = index;
     });
 
+    final token = context.read<AuthProvider>().token ?? '';
     // Refresh state when specific tabs are selected
     if (index == 0) {
-      context.read<DashboardProvider>().refreshDashboard();
+      context.read<DashboardProvider>().refreshDashboard(token);
     } else if (index == 2) {
-      context.read<LaporanProvider>().loadReport();
+      context.read<LaporanProvider>().loadReport(token);
     }
   }
 

@@ -62,7 +62,7 @@ class LaporanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadReport() async {
+  Future<void> loadReport(String token) async {
     _isLoading = true;
     notifyListeners();
 
@@ -72,6 +72,7 @@ class LaporanProvider extends ChangeNotifier {
       final endStr = df.format(_endDate);
 
       final result = await _reportService.getFilteredLeads(
+        token,
         startDate: startStr,
         endDate: endStr,
         wilayahId: _wilayahId,
