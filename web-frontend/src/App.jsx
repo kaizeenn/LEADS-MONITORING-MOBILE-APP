@@ -693,6 +693,25 @@ export default function App() {
         </div>
       </header>
 
+      {/* Admin Menu / Navigation Tab Bar */}
+      {user.role === 'admin' && (
+        <div style={{ background: '#ffffff', borderBottom: '1px solid var(--border)', padding: '10px 40px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.8px', marginRight: '8px', textTransform: 'uppercase' }}>PANEL ADMIN:</span>
+          <button onClick={() => setIsUserModalOpen(true)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <Users size={14} className="text-muted" />
+            <span>Kelola User</span>
+          </button>
+          <button onClick={() => setIsWilayahModalOpen(true)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <MapPin size={14} className="text-muted" />
+            <span>Kelola Wilayah</span>
+          </button>
+          <button onClick={() => setIsSumberModalOpen(true)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <Share2 size={14} className="text-muted" />
+            <span>Kelola Sumber</span>
+          </button>
+        </div>
+      )}
+
       {/* Main Body */}
       <main className="main-content">
         
@@ -807,20 +826,6 @@ export default function App() {
                   <FileSpreadsheet size={16} />
                   <span>Export Excel</span>
                 </button>
-                {user.role === 'admin' && (
-                  <>
-                    <button onClick={() => setIsUserModalOpen(true)} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px', borderColor: '#8B5CF6', color: '#8B5CF6', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Users size={16} />
-                      <span>Kelola User</span>
-                    </button>
-                    <button onClick={() => setIsWilayahModalOpen(true)} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px' }}>
-                      Kelola Wilayah
-                    </button>
-                    <button onClick={() => setIsSumberModalOpen(true)} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px' }}>
-                      Kelola Sumber
-                    </button>
-                  </>
-                )}
               </div>
             </div>
 
