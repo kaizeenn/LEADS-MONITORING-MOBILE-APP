@@ -17,8 +17,10 @@ import {
   AlertCircle,
   X,
   FileText,
-  Bus
+  Bus,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const API_URL = 'http://localhost:3000/api';
 
@@ -351,6 +353,27 @@ export default function App() {
 
   // Calculate sum of visible leads
   const totalLeadsSum = leads.reduce((sum, lead) => sum + lead.jumlah, 0);
+
+  // Export to Excel handler
+  const exportToExcel = () => {
+    if (leads.length === 0) {
+      alert('Tidak ada data leads untuk diekspor.');
+      return;
+    }
+
+    const dataToExport = leads.map(lead => ({
+      'Tanggal': formatDateStr(lead.tanggal),
+      'Nama Wilayah': lead.nama_wilayah,
+      'Sumber Leads': lead.nama_sumber,
+      'Inputter': lead.nama_inputter,
+      'Jumlah': lead.jumlah
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Leads');
+    XLSX.writeFile(workbook, 'leads-report-web.xlsx');
+  };
 
   // SVG Chart Helpers
   const renderLineChart = () => {
@@ -693,6 +716,10 @@ export default function App() {
                 <button onClick={() => handleOpenLeadModal()} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13.5px' }}>
                   <Plus size={16} />
                   <span>Input Leads</span>
+                </button>
+                <button onClick={exportToExcel} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px', borderColor: '#10B981', color: '#10B981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileSpreadsheet size={16} />
+                  <span>Export Excel</span>
                 </button>
                 {user.role === 'admin' && (
                   <>
