@@ -369,6 +369,15 @@ export default function App() {
       'Jumlah': lead.jumlah
     }));
 
+    // Tambah baris total di paling bawah
+    dataToExport.push({
+      'Tanggal': 'TOTAL JUMLAH LEADS',
+      'Nama Wilayah': '',
+      'Sumber Leads': '',
+      'Inputter': '',
+      'Jumlah': totalLeadsSum
+    });
+
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Leads');
