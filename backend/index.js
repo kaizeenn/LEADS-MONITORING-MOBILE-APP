@@ -171,6 +171,63 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   res.json({ user: req.user });
 });
 
+// --- USER MANAGEMENT ROUTES (ADMIN ONLY) ---
+
+// Get all users
+app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT id, name, email, role, created_at FROM users ORDER BY name ASC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal mengambil data user.' });
+  }
+});
+
+// Create new user (Admin adding employee)
+app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
+  const { name, email, password, role } = req.body;
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ error: 'Nama, email, password, dan role wajib diisi.' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userRole = role === 'admin' ? 'admin' : 'karyawan';
+
+    const [result] = await pool.query(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+      [name, email, hashedPassword, userRole]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      name,
+      email,
+      role: userRole
+    });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Email sudah terdaftar.' });
+    }
+    res.status(500).json({ error: 'Gagal menambahkan user baru.' });
+  }
+});
+
+// Delete user
+app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (parseInt(id) === req.user.id) {
+    return res.status(400).json({ error: 'Anda tidak dapat menghapus akun Anda sendiri.' });
+  }
+
+  try {
+    await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ message: 'User berhasil dihapus.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal menghapus user.' });
+  }
+});
+
 // --- WILAYAH ROUTES ---
 
 app.get('/api/wilayah', authenticateToken, async (req, res) => {

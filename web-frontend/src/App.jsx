@@ -52,6 +52,15 @@ export default function App() {
   const [editingLead, setEditingLead] = useState(null);
   const [isWilayahModalOpen, setIsWilayahModalOpen] = useState(false);
   const [isSumberModalOpen, setIsSumberModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+
+  // User Management State
+  const [usersList, setUsersList] = useState([]);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState('karyawan');
+  const [userError, setUserError] = useState('');
 
   // Lead Form
   const [formWilayahId, setFormWilayahId] = useState('');
@@ -100,29 +109,41 @@ export default function App() {
       if (params.length > 0) query = '?' + params.join('&');
 
       // Parallel requests
-      const [resStats, resLeads, resWilayah, resSumber] = await Promise.all([
+      const promises = [
         fetch(`${API_URL}/dashboard`, { headers }),
         fetch(`${API_URL}/leads${query}`, { headers }),
         fetch(`${API_URL}/wilayah`, { headers }),
         fetch(`${API_URL}/sumber`, { headers })
-      ]);
+      ];
 
-      const dataStats = await resStats.json();
-      const dataLeads = await resLeads.json();
-      const dataWilayah = await resWilayah.json();
-      const dataSumber = await resSumber.json();
+      const isAdmin = user && user.role === 'admin';
+      if (isAdmin) {
+        promises.push(fetch(`${API_URL}/users`, { headers }));
+      }
 
-      if (resStats.ok) setDashboardStats(dataStats);
-      if (resLeads.ok) setLeads(dataLeads);
-      if (resWilayah.ok) setWilayah(dataWilayah);
-      if (resSumber.ok) setSumber(dataSumber);
+      const responses = await Promise.all(promises);
+
+      const dataStats = await responses[0].json();
+      const dataLeads = await responses[1].json();
+      const dataWilayah = await responses[2].json();
+      const dataSumber = await responses[3].json();
+
+      if (responses[0].ok) setDashboardStats(dataStats);
+      if (responses[1].ok) setLeads(dataLeads);
+      if (responses[2].ok) setWilayah(dataWilayah);
+      if (responses[3].ok) setSumber(dataSumber);
+
+      if (isAdmin && responses[4]) {
+        const dataUsers = await responses[4].json();
+        if (responses[4].ok) setUsersList(dataUsers);
+      }
 
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
-  }, [token, filterWilayah, filterSumber, filterStartDate, filterEndDate]);
+  }, [token, filterWilayah, filterSumber, filterStartDate, filterEndDate, user]);
 
   useEffect(() => {
     if (token) {
@@ -338,6 +359,62 @@ export default function App() {
       }
     } catch (e) {
       setManageError('Gagal terhubung ke server.');
+    }
+  };
+
+  // User Handlers (Admin Only)
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim() || !newUserRole) {
+      setUserError('Semua kolom wajib diisi.');
+      return;
+    }
+    setUserError('');
+    try {
+      const res = await fetch(`${API_URL}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newUserName.trim(),
+          email: newUserEmail.trim(),
+          password: newUserPassword.trim(),
+          role: newUserRole
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewUserName('');
+        setNewUserEmail('');
+        setNewUserPassword('');
+        setNewUserRole('karyawan');
+        fetchData();
+      } else {
+        setUserError(data.error || 'Gagal menambahkan user.');
+      }
+    } catch (e) {
+      setUserError('Gagal terhubung ke server.');
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus akun user ini?')) return;
+    setUserError('');
+    try {
+      const res = await fetch(`${API_URL}/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        fetchData();
+      } else {
+        setUserError(data.error || 'Gagal menghapus user.');
+      }
+    } catch (e) {
+      setUserError('Gagal terhubung ke server.');
     }
   };
 
@@ -732,6 +809,10 @@ export default function App() {
                 </button>
                 {user.role === 'admin' && (
                   <>
+                    <button onClick={() => setIsUserModalOpen(true)} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px', borderColor: '#8B5CF6', color: '#8B5CF6', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Users size={16} />
+                      <span>Kelola User</span>
+                    </button>
                     <button onClick={() => setIsWilayahModalOpen(true)} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px' }}>
                       Kelola Wilayah
                     </button>
@@ -1013,6 +1094,100 @@ export default function App() {
             </div>
 
             <button type="button" onClick={() => setIsSumberModalOpen(false)} className="btn btn-outline btn-block">Tutup</button>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Manage Users Modal (Admin Only) */}
+      {isUserModalOpen && user.role === 'admin' && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Kelola Akun User</h3>
+              <button className="modal-close" onClick={() => setIsUserModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {userError && (
+              <div className="alert alert-danger" style={{ padding: '10px 14px', marginBottom: '16px' }}>
+                <AlertCircle size={16} />
+                <span>{userError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAddUser} style={{ marginBottom: '24px', background: '#F8FAFC', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <h4 className="form-label" style={{ marginBottom: '12px', color: 'var(--primary)', fontWeight: 'bold' }}>BUAT AKUN BARU</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '10.5px' }}>NAMA LENGKAP</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Nama Karyawan"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '10.5px' }}>EMAIL</label>
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    placeholder="karyawan@email.com"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '10.5px' }}>PASSWORD</label>
+                  <input 
+                    type="password" 
+                    className="form-control" 
+                    placeholder="Minimal 6 karakter"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '10.5px' }}>ROLE/HAK AKSES</label>
+                  <select 
+                    className="form-control" 
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value)}
+                    required
+                  >
+                    <option value="karyawan">Karyawan</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary btn-block">Tambah Akun Baru</button>
+            </form>
+
+            <h4 className="form-label">DAFTAR USER / KARYAWAN</h4>
+            <div className="manage-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {usersList.map(u => (
+                <div key={u.id} className="manage-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px' }}>
+                  <div>
+                    <strong style={{ fontSize: '13.5px' }}>{u.name}</strong>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{u.email} &bull; <span className={`badge ${u.role === 'admin' ? 'badge-danger' : 'badge-primary'}`} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>{u.role}</span></div>
+                  </div>
+                  {user.id !== u.id && (
+                    <button onClick={() => handleDeleteUser(u.id)} className="btn-icon btn-icon-danger" title="Hapus Akun">
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button type="button" onClick={() => setIsUserModalOpen(false)} className="btn btn-outline btn-block" style={{ marginTop: '16px' }}>Tutup</button>
           </div>
         </div>
       )}
