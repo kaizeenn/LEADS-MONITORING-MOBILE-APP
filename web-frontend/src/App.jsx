@@ -104,6 +104,7 @@ export default function App() {
   const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState('karyawan');
+  const [newUserBagian, setNewUserBagian] = useState('marketing');
   const [userError, setUserError] = useState('');
 
   // Toast state
@@ -442,7 +443,8 @@ export default function App() {
           nama_lengkap: newUserName.trim(),
           username: newUserUsername.trim(),
           password: newUserPassword.trim(),
-          role: newUserRole
+          role: newUserRole,
+          bagian: newUserRole === 'admin' ? null : newUserBagian
         })
       });
       const data = await res.json();
@@ -451,6 +453,7 @@ export default function App() {
         setNewUserUsername('');
         setNewUserPassword('');
         setNewUserRole('karyawan');
+        setNewUserBagian('marketing');
         showToast('Akun user baru berhasil dibuat!', 'success');
         fetchData();
       } else {
@@ -1245,6 +1248,20 @@ export default function App() {
                   />
                 </div>
               </div>
+              {newUserRole === 'karyawan' && (
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label className="form-label" style={{ fontSize: '10.5px' }}>BAGIAN/DIVISI</label>
+                  <CustomSelect 
+                    value={newUserBagian} 
+                    onChange={setNewUserBagian} 
+                    options={[
+                      { value: 'marketing', label: 'Marketing' },
+                      { value: 'tour', label: 'Tour' }
+                    ]} 
+                    placeholder="Pilih Bagian" 
+                  />
+                </div>
+              )}
               <button type="submit" className="btn btn-primary btn-block">Tambah Akun Baru</button>
             </form>
 
@@ -1254,7 +1271,10 @@ export default function App() {
                 <div key={u.id} className="manage-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px' }}>
                   <div>
                     <strong style={{ fontSize: '13.5px' }}>{u.nama_lengkap}</strong>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{u.username} &bull; <span className={`badge ${u.role === 'admin' ? 'badge-danger' : 'badge-primary'}`} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>{u.role}</span></div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                      {u.username} &bull; <span className={`badge ${u.role === 'admin' ? 'badge-danger' : 'badge-primary'}`} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>{u.role}</span>
+                      {u.bagian && <span className="badge" style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', background: 'rgba(13, 148, 136, 0.08)', color: 'var(--secondary)', marginLeft: '6px' }}>{u.bagian}</span>}
+                    </div>
                   </div>
                   {user.id !== u.id && (
                     <button onClick={() => handleDeleteUser(u.id)} className="btn-icon btn-icon-danger" title="Hapus Akun">

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   nama_lengkap VARCHAR(100) NOT NULL,
   password VARCHAR(255) NOT NULL,
   role ENUM('admin', 'karyawan') NOT NULL DEFAULT 'karyawan',
+  bagian ENUM('marketing', 'tour') NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

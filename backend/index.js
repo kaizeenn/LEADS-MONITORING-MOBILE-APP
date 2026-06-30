@@ -38,10 +38,10 @@ async function seedDatabase() {
         const empBPass = bcrypt.hashSync('karyawan123', 10);
 
         await connection.query(
-          `INSERT INTO users (nama_lengkap, username, password, role) VALUES 
-          ('Administrator', 'admin', ?, 'admin'),
-          ('Khairil Anwar PENS', 'anwar', ?, 'karyawan'),
-          ('Budi Santoso', 'budi', ?, 'karyawan')`,
+          `INSERT INTO users (nama_lengkap, username, password, role, bagian) VALUES 
+          ('Administrator', 'admin', ?, 'admin', NULL),
+          ('Khairil Anwar PENS', 'anwar', ?, 'karyawan', 'marketing'),
+          ('Budi Santoso', 'budi', ?, 'karyawan', 'tour')`,
           [adminPass, empAPass, empBPass]
         );
         console.log('Database Seeding: Created initial users.');
@@ -104,7 +104,7 @@ const requireAdmin = (req, res, next) => {
 
 // Register User
 app.post('/api/auth/register', async (req, res) => {
-  const { nama_lengkap, username, password, role } = req.body;
+  const { nama_lengkap, username, password, role, bagian } = req.body;
   if (!nama_lengkap || !username || !password) {
     return res.status(400).json({ error: 'Nama lengkap, username, dan password wajib diisi.' });
   }
@@ -112,10 +112,11 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userRole = role === 'admin' ? 'admin' : 'karyawan';
+    const userBagian = userRole === 'admin' ? null : (bagian || 'marketing');
 
     await pool.query(
-      'INSERT INTO users (nama_lengkap, username, password, role) VALUES (?, ?, ?, ?)',
-      [nama_lengkap, username, hashedPassword, userRole]
+      'INSERT INTO users (nama_lengkap, username, password, role, bagian) VALUES (?, ?, ?, ?, ?)',
+      [nama_lengkap, username, hashedPassword, userRole, userBagian]
     );
 
     res.status(201).json({ message: 'Registrasi berhasil!' });
@@ -147,7 +148,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, nama_lengkap: user.nama_lengkap, username: user.username, role: user.role },
+      { id: user.id, nama_lengkap: user.nama_lengkap, username: user.username, role: user.role, bagian: user.bagian },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -158,7 +159,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         nama_lengkap: user.nama_lengkap,
         username: user.username,
-        role: user.role
+        role: user.role,
+        bagian: user.bagian
       }
     });
   } catch (error) {
@@ -176,7 +178,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 // Get all users
 app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, nama_lengkap, username, role, created_at FROM users ORDER BY nama_lengkap ASC');
+    const [rows] = await pool.query('SELECT id, nama_lengkap, username, role, bagian, created_at FROM users ORDER BY nama_lengkap ASC');
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Gagal mengambil data user.' });
@@ -185,7 +187,7 @@ app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
 
 // Create new user (Admin adding employee)
 app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
-  const { nama_lengkap, username, password, role } = req.body;
+  const { nama_lengkap, username, password, role, bagian } = req.body;
   if (!nama_lengkap || !username || !password || !role) {
     return res.status(400).json({ error: 'Nama lengkap, username, password, dan role wajib diisi.' });
   }
@@ -193,17 +195,19 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userRole = role === 'admin' ? 'admin' : 'karyawan';
+    const userBagian = userRole === 'admin' ? null : (bagian || 'marketing');
 
     const [result] = await pool.query(
-      'INSERT INTO users (nama_lengkap, username, password, role) VALUES (?, ?, ?, ?)',
-      [nama_lengkap, username, hashedPassword, userRole]
+      'INSERT INTO users (nama_lengkap, username, password, role, bagian) VALUES (?, ?, ?, ?, ?)',
+      [nama_lengkap, username, hashedPassword, userRole, userBagian]
     );
 
     res.status(201).json({
       id: result.insertId,
       nama_lengkap,
       username,
-      role: userRole
+      role: userRole,
+      bagian: userBagian
     });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {

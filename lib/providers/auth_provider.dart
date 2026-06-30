@@ -19,6 +19,7 @@ class AuthProvider extends ChangeNotifier {
   String get userName => _user?['nama_lengkap'] ?? 'Karyawan';
   String get userEmail => _user?['username'] ?? '';
   int get userId => _user?['id'] ?? 0;
+  String get userBagian => _user?['bagian'] ?? '';
 
   Future<void> tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
