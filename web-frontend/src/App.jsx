@@ -787,7 +787,7 @@ export default function App() {
 
   // Render Dashboard UI
   return (
-    <div className="dashboard-wrapper">
+    <div className={`dashboard-wrapper theme-${activeDivisi}`}>
       {/* Header */}
       <header className="header">
         <div className="brand-wrapper" style={{ gap: '14px' }}>
