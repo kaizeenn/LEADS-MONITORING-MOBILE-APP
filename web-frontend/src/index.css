@@ -900,3 +900,104 @@ select.form-control:focus {
   border-left: 4px solid var(--danger);
   color: var(--danger);
 }
+
+/* Custom React Select Component */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.custom-select-trigger:hover {
+  border-color: #CBD5E1;
+}
+
+.custom-select-trigger.open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.custom-select-arrow {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.custom-select-arrow.open {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.custom-select-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  animation: slideDownSelect 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDownSelect {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.custom-select-option {
+  padding: 8px 12px;
+  font-size: 13.5px;
+  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.custom-select-option:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.custom-select-option.selected {
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+/* For Filter Bar Specifically */
+.filter-bar .custom-select-trigger {
+  background: #F8FAFC;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+
+.filter-bar .custom-select-trigger.open {
+  background: var(--surface);
+}

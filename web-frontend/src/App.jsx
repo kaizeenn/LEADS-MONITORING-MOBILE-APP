@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   LogOut, 
   Plus, 
@@ -18,11 +18,55 @@ import {
   X,
   FileText,
   Bus,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const API_URL = 'http://localhost:3000/api';
+
+// Beautiful Custom React Dropdown Component
+function CustomSelect({ value, onChange, options, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => String(opt.value) === String(value));
+
+  return (
+    <div className="custom-select-container" ref={dropdownRef}>
+      <div className={`custom-select-trigger ${isOpen ? 'open' : ''}`} onClick={() => setIsOpen(!isOpen)}>
+        <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        <ChevronDown size={14} className={`custom-select-arrow ${isOpen ? 'open' : ''}`} />
+      </div>
+      {isOpen && (
+        <div className="custom-select-options">
+          {options.map((opt) => (
+            <div 
+              key={opt.value} 
+              className={`custom-select-option ${String(opt.value) === String(value) ? 'selected' : ''}`}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
@@ -738,18 +782,28 @@ export default function App() {
         <section className="filter-bar">
           <div className="filter-item">
             <label className="form-label" style={{ marginBottom: '6px' }}>WILAYAH</label>
-            <select className="form-control" value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)}>
-              <option value="">Semua Wilayah</option>
-              {wilayah.map(w => <option key={w.id} value={w.id}>{w.nama_wilayah}</option>)}
-            </select>
+            <CustomSelect 
+              value={filterWilayah} 
+              onChange={setFilterWilayah} 
+              options={[
+                { value: '', label: 'Semua Wilayah' },
+                ...wilayah.map(w => ({ value: String(w.id), label: w.nama_wilayah }))
+              ]} 
+              placeholder="Semua Wilayah" 
+            />
           </div>
 
           <div className="filter-item">
             <label className="form-label" style={{ marginBottom: '6px' }}>SUMBER LEADS</label>
-            <select className="form-control" value={filterSumber} onChange={(e) => setFilterSumber(e.target.value)}>
-              <option value="">Semua Sumber</option>
-              {sumber.map(s => <option key={s.id} value={s.id}>{s.nama_sumber}</option>)}
-            </select>
+            <CustomSelect 
+              value={filterSumber} 
+              onChange={setFilterSumber} 
+              options={[
+                { value: '', label: 'Semua Sumber' },
+                ...sumber.map(s => ({ value: String(s.id), label: s.nama_sumber }))
+              ]} 
+              placeholder="Semua Sumber" 
+            />
           </div>
 
           <div className="filter-item">
@@ -985,18 +1039,22 @@ export default function App() {
             <form onSubmit={handleSaveLead}>
               <div className="form-group">
                 <label className="form-label">WILAYAH TUJUAN</label>
-                <select className="form-control" value={formWilayahId} onChange={(e) => setFormWilayahId(e.target.value)} required>
-                  <option value="">Pilih Wilayah</option>
-                  {wilayah.map(w => <option key={w.id} value={w.id}>{w.nama_wilayah}</option>)}
-                </select>
+                <CustomSelect 
+                  value={formWilayahId} 
+                  onChange={setFormWilayahId} 
+                  options={wilayah.map(w => ({ value: String(w.id), label: w.nama_wilayah }))} 
+                  placeholder="Pilih Wilayah" 
+                />
               </div>
 
               <div className="form-group">
                 <label className="form-label">SUMBER LEADS</label>
-                <select className="form-control" value={formSumberId} onChange={(e) => setFormSumberId(e.target.value)} required>
-                  <option value="">Pilih Sumber</option>
-                  {sumber.map(s => <option key={s.id} value={s.id}>{s.nama_sumber}</option>)}
-                </select>
+                <CustomSelect 
+                  value={formSumberId} 
+                  onChange={setFormSumberId} 
+                  options={sumber.map(s => ({ value: String(s.id), label: s.nama_sumber }))} 
+                  placeholder="Pilih Sumber" 
+                />
               </div>
 
               <div className="form-group">
@@ -1180,15 +1238,15 @@ export default function App() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '10.5px' }}>ROLE/HAK AKSES</label>
-                  <select 
-                    className="form-control" 
-                    value={newUserRole}
-                    onChange={(e) => setNewUserRole(e.target.value)}
-                    required
-                  >
-                    <option value="karyawan">Karyawan</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                  <CustomSelect 
+                    value={newUserRole} 
+                    onChange={setNewUserRole} 
+                    options={[
+                      { value: 'karyawan', label: 'Karyawan' },
+                      { value: 'admin', label: 'Admin' }
+                    ]} 
+                    placeholder="Pilih Role" 
+                  />
                 </div>
               </div>
               <button type="submit" className="btn btn-primary btn-block">Tambah Akun Baru</button>
