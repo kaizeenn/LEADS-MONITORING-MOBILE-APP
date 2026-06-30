@@ -62,6 +62,15 @@ export default function App() {
   const [newUserRole, setNewUserRole] = useState('karyawan');
   const [userError, setUserError] = useState('');
 
+  // Toast state
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
   // Lead Form
   const [formWilayahId, setFormWilayahId] = useState('');
   const [formSumberId, setFormSumberId] = useState('');
@@ -245,6 +254,7 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setIsLeadModalOpen(false);
+        showToast(editingLead ? 'Data lead berhasil diperbarui!' : 'Data lead berhasil disimpan!', 'success');
         fetchData();
       } else {
         setFormError(data.error || 'Gagal menyimpan data.');
@@ -264,10 +274,11 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
+        showToast('Data lead berhasil dihapus!', 'success');
         fetchData();
       } else {
         const data = await res.json();
-        alert(data.error || 'Gagal menghapus lead.');
+        showToast(data.error || 'Gagal menghapus lead.', 'error');
       }
     } catch (e) {
       alert('Gagal terhubung ke server.');
@@ -291,6 +302,7 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setNewWilayahName('');
+        showToast('Wilayah pariwisata berhasil ditambahkan!', 'success');
         fetchData();
       } else {
         setManageError(data.error || 'Gagal menambahkan wilayah.');
@@ -301,6 +313,7 @@ export default function App() {
   };
 
   const handleDeleteWilayah = async (id) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus wilayah pariwisata ini?')) return;
     setManageError('');
     try {
       const res = await fetch(`${API_URL}/wilayah/${id}`, {
@@ -309,6 +322,7 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
+        showToast('Wilayah pariwisata berhasil dihapus!', 'success');
         fetchData();
       } else {
         setManageError(data.error || 'Gagal menghapus wilayah.');
@@ -335,6 +349,7 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setNewSumberName('');
+        showToast('Sumber leads berhasil ditambahkan!', 'success');
         fetchData();
       } else {
         setManageError(data.error || 'Gagal menambahkan sumber.');
@@ -345,6 +360,7 @@ export default function App() {
   };
 
   const handleDeleteSumber = async (id) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus sumber leads ini?')) return;
     setManageError('');
     try {
       const res = await fetch(`${API_URL}/sumber/${id}`, {
@@ -353,6 +369,7 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
+        showToast('Sumber leads berhasil dihapus!', 'success');
         fetchData();
       } else {
         setManageError(data.error || 'Gagal menghapus sumber.');
@@ -390,6 +407,7 @@ export default function App() {
         setNewUserEmail('');
         setNewUserPassword('');
         setNewUserRole('karyawan');
+        showToast('Akun user baru berhasil dibuat!', 'success');
         fetchData();
       } else {
         setUserError(data.error || 'Gagal menambahkan user.');
@@ -409,6 +427,7 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
+        showToast('Akun user berhasil dihapus!', 'success');
         fetchData();
       } else {
         setUserError(data.error || 'Gagal menghapus user.');
@@ -1194,6 +1213,14 @@ export default function App() {
 
             <button type="button" onClick={() => setIsUserModalOpen(false)} className="btn btn-outline btn-block" style={{ marginTop: '16px' }}>Tutup</button>
           </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div className={`toast-notification toast-${toast.type}`}>
+          {toast.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
+          <span>{toast.message}</span>
         </div>
       )}
     </div>
