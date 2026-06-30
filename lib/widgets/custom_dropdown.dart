@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_colors.dart';
 
 class CustomDropdown<T> extends StatelessWidget {
   final String label;
@@ -27,9 +28,10 @@ class CustomDropdown<T> extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              color: AppColors.onBackground,
+              letterSpacing: 0.2,
             ),
           ),
           const SizedBox(height: 8),
@@ -39,11 +41,13 @@ class CustomDropdown<T> extends StatelessWidget {
           items: items,
           onChanged: onChanged,
           validator: validator,
+          dropdownColor: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
           decoration: InputDecoration(
             hintText: hint,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0F4C81)),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary, size: 22),
           isExpanded: true,
         ),
       ],
