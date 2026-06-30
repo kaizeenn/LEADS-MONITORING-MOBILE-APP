@@ -420,15 +420,15 @@ select.form-control:focus {
 
 .main-content {
   flex: 1;
-  padding: 24px 40px;
+  padding: 28px 40px;
+  max-width: 1400px;
   width: 100%;
-  max-width: 100%;
-  margin: 0;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 16px;
+    padding: 20px;
   }
 }
 
@@ -488,21 +488,9 @@ select.form-control:focus {
 /* Stat Cards Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 28px;
-}
-
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .stat-card {
@@ -1012,61 +1000,4 @@ select.form-control:focus {
 
 .filter-bar .custom-select-trigger.open {
   background: var(--surface);
-}
-
-/* Dashboard Reorganized Grid Layouts */
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-bottom: 28px;
-}
-
-@media (max-width: 1024px) {
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.data-grid {
-  display: grid;
-  gap: 20px;
-  margin-bottom: 28px;
-}
-
-@media (min-width: 1025px) {
-  .data-grid {
-    grid-template-columns: 2.2fr 1fr;
-  }
-}
-
-/* Green Export Excel Button */
-.btn-export-excel {
-  background: var(--success-bg) !important;
-  color: var(--success) !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
-  transition: all 0.2s ease;
-}
-
-.btn-export-excel:hover {
-  background: var(--success) !important;
-  color: white !important;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15) !important;
-}
-
-/* Premium Footer */
-.footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 20px;
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-}
-
-.footer strong {
-  color: var(--text-main);
-  font-weight: 600;
 }
