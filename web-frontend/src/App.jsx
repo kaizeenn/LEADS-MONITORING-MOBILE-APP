@@ -29,7 +29,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   
   // Auth state
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -57,7 +57,7 @@ export default function App() {
   // User Management State
   const [usersList, setUsersList] = useState([]);
   const [newUserName, setNewUserName] = useState('');
-  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState('karyawan');
   const [userError, setUserError] = useState('');
@@ -169,8 +169,8 @@ export default function App() {
   // Auth Handlers
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!loginEmail || !loginPassword) {
-      setAuthError('Email dan password wajib diisi.');
+    if (!loginUsername || !loginPassword) {
+      setAuthError('Username dan password wajib diisi.');
       return;
     }
     setAuthLoading(true);
@@ -179,7 +179,7 @@ export default function App() {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
       });
       const data = await res.json();
       if (res.ok) {
@@ -382,7 +382,7 @@ export default function App() {
   // User Handlers (Admin Only)
   const handleAddUser = async (e) => {
     e.preventDefault();
-    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim() || !newUserRole) {
+    if (!newUserName.trim() || !newUserUsername.trim() || !newUserPassword.trim() || !newUserRole) {
       setUserError('Semua kolom wajib diisi.');
       return;
     }
@@ -395,8 +395,8 @@ export default function App() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: newUserName.trim(),
-          email: newUserEmail.trim(),
+          nama_lengkap: newUserName.trim(),
+          username: newUserUsername.trim(),
           password: newUserPassword.trim(),
           role: newUserRole
         })
@@ -404,7 +404,7 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setNewUserName('');
-        setNewUserEmail('');
+        setNewUserUsername('');
         setNewUserPassword('');
         setNewUserRole('karyawan');
         showToast('Akun user baru berhasil dibuat!', 'success');
@@ -642,15 +642,15 @@ export default function App() {
 
           <form onSubmit={handleLogin}>
             <div className="form-group">
-              <label className="form-label">EMAIL</label>
+              <label className="form-label">USERNAME</label>
               <div className="input-wrapper">
-                <Mail className="input-icon" size={16} />
+                <User className="input-icon" size={16} />
                 <input 
-                  type="email" 
+                  type="text" 
                   className="form-control has-icon" 
-                  placeholder="admin@leads.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="Masukkan username"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
                   required
                 />
               </div>
@@ -698,10 +698,10 @@ export default function App() {
         <div className="user-toolbar">
           <div className="user-badge">
             <div className="user-avatar">
-              {user.name.substring(0, 2).toUpperCase()}
+              {user.nama_lengkap.substring(0, 2).toUpperCase()}
             </div>
             <div className="user-info">
-              <span className="user-name">{user.name}</span>
+              <span className="user-name">{user.nama_lengkap}</span>
               <span className="user-role">{user.role}</span>
             </div>
           </div>
@@ -1155,13 +1155,13 @@ export default function App() {
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '10.5px' }}>EMAIL</label>
+                  <label className="form-label" style={{ fontSize: '10.5px' }}>USERNAME</label>
                   <input 
-                    type="email" 
+                    type="text" 
                     className="form-control" 
-                    placeholder="karyawan@email.com"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="Masukkan username"
+                    value={newUserUsername}
+                    onChange={(e) => setNewUserUsername(e.target.value)}
                     required
                   />
                 </div>
@@ -1199,8 +1199,8 @@ export default function App() {
               {usersList.map(u => (
                 <div key={u.id} className="manage-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px' }}>
                   <div>
-                    <strong style={{ fontSize: '13.5px' }}>{u.name}</strong>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{u.email} &bull; <span className={`badge ${u.role === 'admin' ? 'badge-danger' : 'badge-primary'}`} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>{u.role}</span></div>
+                    <strong style={{ fontSize: '13.5px' }}>{u.nama_lengkap}</strong>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{u.username} &bull; <span className={`badge ${u.role === 'admin' ? 'badge-danger' : 'badge-primary'}`} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>{u.role}</span></div>
                   </div>
                   {user.id !== u.id && (
                     <button onClick={() => handleDeleteUser(u.id)} className="btn-icon btn-icon-danger" title="Hapus Akun">

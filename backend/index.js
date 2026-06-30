@@ -38,10 +38,10 @@ async function seedDatabase() {
         const empBPass = bcrypt.hashSync('karyawan123', 10);
 
         await connection.query(
-          `INSERT INTO users (name, email, password, role) VALUES 
-          ('Administrator', 'admin@leads.com', ?, 'admin'),
-          ('Khairil Anwar PENS', 'anwar@leads.com', ?, 'karyawan'),
-          ('Budi Santoso', 'budi@leads.com', ?, 'karyawan')`,
+          `INSERT INTO users (nama_lengkap, username, password, role) VALUES 
+          ('Administrator', 'admin', ?, 'admin'),
+          ('Khairil Anwar PENS', 'anwar', ?, 'karyawan'),
+          ('Budi Santoso', 'budi', ?, 'karyawan')`,
           [adminPass, empAPass, empBPass]
         );
         console.log('Database Seeding: Created initial users.');
@@ -104,9 +104,9 @@ const requireAdmin = (req, res, next) => {
 
 // Register User
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password) {
-    return res.status(404).json({ error: 'Nama, email, dan password wajib diisi.' });
+  const { nama_lengkap, username, password, role } = req.body;
+  if (!nama_lengkap || !username || !password) {
+    return res.status(400).json({ error: 'Nama lengkap, username, dan password wajib diisi.' });
   }
 
   try {
@@ -114,14 +114,14 @@ app.post('/api/auth/register', async (req, res) => {
     const userRole = role === 'admin' ? 'admin' : 'karyawan';
 
     await pool.query(
-      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, userRole]
+      'INSERT INTO users (nama_lengkap, username, password, role) VALUES (?, ?, ?, ?)',
+      [nama_lengkap, username, hashedPassword, userRole]
     );
 
     res.status(201).json({ message: 'Registrasi berhasil!' });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Email sudah terdaftar.' });
+      return res.status(400).json({ error: 'Username sudah terdaftar.' });
     }
     res.status(500).json({ error: 'Gagal melakukan registrasi.' });
   }
@@ -129,15 +129,15 @@ app.post('/api/auth/register', async (req, res) => {
 
 // Login User
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email dan password wajib diisi.' });
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username dan password wajib diisi.' });
   }
 
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username.trim()]);
     if (rows.length === 0) {
-      return res.status(400).json({ error: 'Email tidak ditemukan.' });
+      return res.status(400).json({ error: 'Username tidak ditemukan.' });
     }
 
     const user = rows[0];
@@ -147,7 +147,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, name: user.name, email: user.email, role: user.role },
+      { id: user.id, nama_lengkap: user.nama_lengkap, username: user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -156,8 +156,8 @@ app.post('/api/auth/login', async (req, res) => {
       token,
       user: {
         id: user.id,
-        name: user.name,
-        email: user.email,
+        nama_lengkap: user.nama_lengkap,
+        username: user.username,
         role: user.role
       }
     });
@@ -176,7 +176,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 // Get all users
 app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, email, role, created_at FROM users ORDER BY name ASC');
+    const [rows] = await pool.query('SELECT id, nama_lengkap, username, role, created_at FROM users ORDER BY nama_lengkap ASC');
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Gagal mengambil data user.' });
@@ -185,9 +185,9 @@ app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
 
 // Create new user (Admin adding employee)
 app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password || !role) {
-    return res.status(400).json({ error: 'Nama, email, password, dan role wajib diisi.' });
+  const { nama_lengkap, username, password, role } = req.body;
+  if (!nama_lengkap || !username || !password || !role) {
+    return res.status(400).json({ error: 'Nama lengkap, username, password, dan role wajib diisi.' });
   }
 
   try {
@@ -195,19 +195,19 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
     const userRole = role === 'admin' ? 'admin' : 'karyawan';
 
     const [result] = await pool.query(
-      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, userRole]
+      'INSERT INTO users (nama_lengkap, username, password, role) VALUES (?, ?, ?, ?)',
+      [nama_lengkap, username, hashedPassword, userRole]
     );
 
     res.status(201).json({
       id: result.insertId,
-      name,
-      email,
+      nama_lengkap,
+      username,
       role: userRole
     });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Email sudah terdaftar.' });
+      return res.status(400).json({ error: 'Username sudah terdaftar.' });
     }
     res.status(500).json({ error: 'Gagal menambahkan user baru.' });
   }
@@ -322,7 +322,7 @@ app.get('/api/leads', authenticateToken, async (req, res) => {
   const { user_id, wilayah_id, sumber_id, startDate, endDate } = req.query;
   
   let query = `
-    SELECT l.*, w.nama_wilayah, s.nama_sumber, u.name as nama_inputter
+    SELECT l.*, w.nama_wilayah, s.nama_sumber, u.nama_lengkap as nama_inputter
     FROM leads l
     JOIN wilayah w ON l.wilayah_id = w.id
     JOIN sumber_leads s ON l.sumber_id = s.id
@@ -545,7 +545,7 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
     let leaderboard = [];
     if (req.user.role === 'admin') {
       const [rows] = await pool.query(
-        `SELECT u.name, COALESCE(SUM(l.jumlah), 0) as total
+        `SELECT u.nama_lengkap as name, COALESCE(SUM(l.jumlah), 0) as total
          FROM users u
          LEFT JOIN leads l ON u.id = l.user_id
          WHERE u.role = 'karyawan'

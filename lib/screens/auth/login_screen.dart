@@ -13,14 +13,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   String? _errorMessage;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authProvider = context.read<AuthProvider>();
     final result = await authProvider.login(
-      _emailController.text,
+      _usernameController.text,
       _passwordController.text,
     );
 
@@ -137,9 +137,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Email Field
+                          // Username Field
                           const Text(
-                            'Email Karyawan',
+                            'Username Karyawan',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -148,18 +148,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _usernameController,
+                            keyboardType: TextInputType.text,
                             decoration: const InputDecoration(
-                              hintText: 'nama@leads.com',
-                              prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
+                              hintText: 'Masukkan username',
+                              prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Email wajib diisi';
-                              }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                return 'Format email tidak valid';
+                                return 'Username wajib diisi';
                               }
                               return null;
                             },

@@ -16,8 +16,8 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _token != null;
 
   String get userRole => _user?['role'] ?? 'karyawan';
-  String get userName => _user?['name'] ?? 'Karyawan';
-  String get userEmail => _user?['email'] ?? '';
+  String get userName => _user?['nama_lengkap'] ?? 'Karyawan';
+  String get userEmail => _user?['username'] ?? '';
   int get userId => _user?['id'] ?? 0;
 
   Future<void> tryAutoLogin() async {
@@ -55,7 +55,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String username, String password) async {
     _isLoading = true;
     notifyListeners();
 
@@ -64,7 +64,7 @@ class AuthProvider extends ChangeNotifier {
         Uri.parse('$apiBaseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'email': email.trim(),
+          'username': username.trim(),
           'password': password.trim(),
         }),
       );
