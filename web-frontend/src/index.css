@@ -477,7 +477,7 @@ select.form-control:focus {
 }
 
 .filter-bar select:focus, .filter-bar input:focus {
-  background: var(--surface);
+  background-color: var(--surface);
   border-color: var(--primary);
 }
 
