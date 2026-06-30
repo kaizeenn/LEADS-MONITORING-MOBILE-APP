@@ -17,15 +17,34 @@ class AddDataScreen extends StatefulWidget {
 class _AddDataScreenState extends State<AddDataScreen> {
   final _formKey = GlobalKey<FormState>();
   final _jumlahController = TextEditingController();
+  final _namaClientController = TextEditingController();
+  final _asalClientController = TextEditingController();
+  final _noHpClientController = TextEditingController();
 
   int? _selectedWilayahId;
   int? _selectedSumberId;
+  String? _selectedLokasi;
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+
+  final List<String> _tourLocations = [
+    'Bogor',
+    'Bandung',
+    'Jogja',
+    'Malang',
+    'Bromo',
+    'Banyuwangi',
+    'Bali',
+    'Lombok',
+    'Labuan Bajo'
+  ];
 
   @override
   void dispose() {
     _jumlahController.dispose();
+    _namaClientController.dispose();
+    _asalClientController.dispose();
+    _noHpClientController.dispose();
     super.dispose();
   }
 
@@ -47,19 +66,35 @@ class _AddDataScreenState extends State<AddDataScreen> {
     setState(() {
       _selectedWilayahId = null;
       _selectedSumberId = null;
+      _selectedLokasi = null;
       _selectedDate = DateTime.now();
       _jumlahController.clear();
+      _namaClientController.clear();
+      _asalClientController.clear();
+      _noHpClientController.clear();
     });
   }
 
   Future<void> _saveLead() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedWilayahId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan pilih wilayah'), backgroundColor: AppColors.danger),
-      );
-      return;
+    final authProvider = context.read<AuthProvider>();
+    final isTour = authProvider.userBagian == 'tour';
+
+    if (isTour) {
+      if (_selectedLokasi == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan pilih lokasi tujuan'), backgroundColor: AppColors.danger),
+        );
+        return;
+      }
+    } else {
+      if (_selectedWilayahId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan pilih wilayah'), backgroundColor: AppColors.danger),
+        );
+        return;
+      }
     }
+
     if (_selectedSumberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Silakan pilih sumber leads'), backgroundColor: AppColors.danger),
@@ -67,20 +102,36 @@ class _AddDataScreenState extends State<AddDataScreen> {
       return;
     }
 
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _isSaving = true;
     });
 
     final leadsProvider = context.read<LeadsProvider>();
     final df = DateFormat('yyyy-MM-dd');
-    final token = context.read<AuthProvider>().token ?? '';
-    final success = await leadsProvider.addLead(
-      token,
-      wilayahId: _selectedWilayahId!,
-      sumberId: _selectedSumberId!,
-      tanggal: df.format(_selectedDate),
-      jumlah: int.parse(_jumlahController.text),
-    );
+    final token = authProvider.token ?? '';
+    
+    final bool success;
+    if (isTour) {
+      success = await leadsProvider.addLeadTour(
+        token,
+        lokasi: _selectedLokasi!,
+        sumberId: _selectedSumberId!,
+        tanggal: df.format(_selectedDate),
+        namaClient: _namaClientController.text,
+        asalClient: _asalClientController.text,
+        noHpClient: _noHpClientController.text,
+      );
+    } else {
+      success = await leadsProvider.addLead(
+        token,
+        wilayahId: _selectedWilayahId!,
+        sumberId: _selectedSumberId!,
+        tanggal: df.format(_selectedDate),
+        jumlah: int.parse(_jumlahController.text),
+      );
+    }
 
     setState(() {
       _isSaving = false;
@@ -286,10 +337,12 @@ class _AddDataScreenState extends State<AddDataScreen> {
   @override
   Widget build(BuildContext context) {
     final leadsProvider = context.watch<LeadsProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    final isTour = authProvider.userBagian == 'tour';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Input Data Leads'),
+        title: Text(isTour ? 'Input Data Leads Tour' : 'Input Data Leads Marketing'),
       ),
       body: leadsProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -306,47 +359,93 @@ class _AddDataScreenState extends State<AddDataScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Wilayah Pariwisata',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.onBackground,
-                                    letterSpacing: -0.1,
+                            if (!isTour) ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Wilayah Pariwisata',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onBackground,
+                                      letterSpacing: -0.1,
+                                    ),
                                   ),
+                                  TextButton.icon(
+                                    onPressed: () => _showManageWilayahBottomSheet(context),
+                                    icon: const Icon(Icons.edit_location_alt_rounded, size: 14, color: AppColors.secondary),
+                                    label: const Text(
+                                      'Kelola Wilayah',
+                                      style: TextStyle(fontSize: 12, color: AppColors.secondary, fontWeight: FontWeight.bold),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              CustomDropdown<int?>(
+                                label: '',
+                                value: _selectedWilayahId,
+                                hint: 'Pilih Wilayah Tujuan',
+                                items: leadsProvider.wilayahList.map((w) {
+                                  return DropdownMenuItem<int?>(
+                                    value: w.id,
+                                    child: Text(w.namaWilayah),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedWilayahId = val;
+                                  });
+                                },
+                              ),
+                            ] else ...[
+                              const Text(
+                                'Lokasi / Daerah Tujuan',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.onBackground,
+                                  letterSpacing: -0.1,
                                 ),
-                                TextButton.icon(
-                                  onPressed: () => _showManageWilayahBottomSheet(context),
-                                  icon: const Icon(Icons.edit_location_alt_rounded, size: 14, color: AppColors.secondary),
-                                  label: const Text(
-                                    'Kelola Wilayah',
-                                    style: TextStyle(fontSize: 12, color: AppColors.secondary, fontWeight: FontWeight.bold),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
+                              ),
+                              const SizedBox(height: 8),
+                              CustomDropdown<String?>(
+                                label: '',
+                                value: _selectedLokasi,
+                                hint: 'Pilih Lokasi Tujuan',
+                                items: _tourLocations.map((loc) {
+                                  return DropdownMenuItem<String?>(
+                                    value: loc,
+                                    child: Text(loc),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedLokasi = val;
+                                  });
+                                },
+                              ),
+                            ],
+                            const SizedBox(height: 20),
                             CustomDropdown<int?>(
-                              label: '',
-                              value: _selectedWilayahId,
-                              hint: 'Pilih Wilayah Tujuan',
-                              items: leadsProvider.wilayahList.map((w) {
+                              label: 'Sumber Leads',
+                              value: _selectedSumberId,
+                              hint: 'Pilih Sumber Leads',
+                              items: leadsProvider.sumberLeadsList.map((s) {
                                 return DropdownMenuItem<int?>(
-                                  value: w.id,
-                                  child: Text(w.namaWilayah),
+                                  value: s.id,
+                                  child: Text(s.namaSumber),
                                 );
                               }).toList(),
                               onChanged: (val) {
                                 setState(() {
-                                  _selectedWilayahId = val;
+                                  _selectedSumberId = val;
                                 });
                               },
                             ),
@@ -418,58 +517,128 @@ class _AddDataScreenState extends State<AddDataScreen> {
                               ],
                             ),
                             const SizedBox(height: 20),
-                            CustomDropdown<int?>(
-                              label: 'Sumber Leads',
-                              value: _selectedSumberId,
-                              hint: 'Pilih Sumber Leads',
-                              items: leadsProvider.sumberLeadsList.map((s) {
-                                return DropdownMenuItem<int?>(
-                                  value: s.id,
-                                  child: Text(s.namaSumber),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedSumberId = val;
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Jumlah Leads',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.onBackground,
+                            if (!isTour) ...[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Jumlah Leads',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onBackground,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _jumlahController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Masukkan jumlah leads',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    controller: _jumlahController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Masukkan jumlah leads',
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Jumlah leads wajib diisi';
+                                      }
+                                      final number = int.tryParse(value);
+                                      if (number == null) {
+                                        return 'Hanya angka yang diperbolehkan';
+                                      }
+                                      if (number < 0) {
+                                        return 'Minimal 0';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Jumlah leads wajib diisi';
-                                    }
-                                    final number = int.tryParse(value);
-                                    if (number == null) {
-                                      return 'Hanya angka yang diperbolehkan';
-                                    }
-                                    if (number < 0) {
-                                      return 'Minimal 0';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
+                            ] else ...[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Nama / Instansi Client',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onBackground,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    controller: _namaClientController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Contoh: SMA 1 Surabaya / Bpk. Adi',
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Nama/Instansi client wajib diisi';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Asal Client (Kota)',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onBackground,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    controller: _asalClientController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Contoh: Sidoarjo',
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Asal client wajib diisi';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Nomor HP Client',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onBackground,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    controller: _noHpClientController,
+                                    keyboardType: TextInputType.phone,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Contoh: 08123456789',
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Nomor HP client wajib diisi';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),

@@ -13,6 +13,7 @@ class DashboardProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _wilayahChart = [];
   List<Map<String, dynamic>> _sumberChart = [];
   bool _isLoading = false;
+  String _currentDivision = 'marketing';
 
   int get todayTotal => _todayTotal;
   int get monthTotal => _monthTotal;
@@ -23,13 +24,23 @@ class DashboardProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get wilayahChart => _wilayahChart;
   List<Map<String, dynamic>> get sumberChart => _sumberChart;
   bool get isLoading => _isLoading;
+  String get currentDivision => _currentDivision;
+
+  void initializeDivision(String div) {
+    _currentDivision = div;
+  }
+
+  void setDivision(String div, String token) {
+    _currentDivision = div;
+    refreshDashboard(token);
+  }
 
   Future<void> refreshDashboard(String token) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final stats = await _reportService.getDashboardStats(token);
+      final stats = await _reportService.getDashboardStats(token, division: _currentDivision);
       _todayTotal = stats['today_total'] as int? ?? 0;
       _monthTotal = stats['month_total'] as int? ?? 0;
       _yearTotal = stats['year_total'] as int? ?? 0;

@@ -18,13 +18,21 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final token = context.read<AuthProvider>().token ?? '';
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token ?? '';
+      final division = authProvider.userBagian.isNotEmpty ? authProvider.userBagian : 'marketing';
+      context.read<DashboardProvider>().initializeDivision(division);
       context.read<DashboardProvider>().refreshDashboard(token);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final isOwner = authProvider.userRole == 'owner';
+    final isAdmin = authProvider.userRole == 'admin';
+    final showTabs = isOwner || isAdmin;
+
     return Scaffold(
       appBar: AppBar(
         title: const Row(
@@ -67,6 +75,30 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (showTabs) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SegmentedButton<String>(
+                        segments: const <ButtonSegment<String>>[
+                          ButtonSegment<String>(
+                            value: 'marketing',
+                            label: Text('Marketing'),
+                            icon: Icon(Icons.campaign_rounded),
+                          ),
+                          ButtonSegment<String>(
+                            value: 'tour',
+                            label: Text('Tour'),
+                            icon: Icon(Icons.directions_bus_rounded),
+                          ),
+                        ],
+                        selected: <String>{provider.currentDivision},
+                        onSelectionChanged: (Set<String> newSelection) {
+                          final token = authProvider.token ?? '';
+                          provider.setDivision(newSelection.first, token);
+                        },
+                      ),
+                    ),
+                  ],
                   Row(
                     children: [
                       Expanded(
@@ -102,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: SummaryCard(
-                          title: 'Wilayah Teraktif',
+                          title: provider.currentDivision == 'marketing' ? 'Wilayah Teraktif' : 'Lokasi Teraktif',
                           value: provider.bestWilayah,
                           icon: Icons.map_rounded,
                           color: AppColors.warning,
@@ -160,7 +192,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     ChartCard(
-                      title: 'Leads Berdasarkan Wilayah (Top 5)',
+                      title: provider.currentDivision == 'marketing'
+                          ? 'Leads Berdasarkan Wilayah (Top 5)'
+                          : 'Leads Berdasarkan Lokasi (Top 5)',
                       chart: WilayahBarChart(data: wilayahChart),
                     ),
                     const SizedBox(height: 8),

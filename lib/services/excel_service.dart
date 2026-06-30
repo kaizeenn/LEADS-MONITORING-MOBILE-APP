@@ -2,13 +2,15 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/leads_model.dart';
+import '../models/leads_tour_model.dart';
 import 'package:intl/intl.dart';
 
 class ExcelService {
   Future<String?> exportToExcel(
-    List<LeadsModel> leads,
-    Map<String, dynamic> summaryStats,
-  ) async {
+    List<dynamic> leads,
+    Map<String, dynamic> summaryStats, {
+    String division = 'marketing',
+  }) async {
     try {
       var excel = Excel.createExcel();
       
@@ -100,8 +102,10 @@ class ExcelService {
       Sheet detailSheet = excel['Detail Leads'];
       int dr = 0;
       
-      // Headers (exactly matching the screenshot layout but without Sumber)
-      final detailHeaders = ['Tanggal \u2193', 'Wilayah', 'Jumlah'];
+      // Headers
+      final detailHeaders = division == 'marketing' 
+          ? ['Tanggal \u2193', 'Wilayah', 'Jumlah']
+          : ['Tanggal \u2193', 'Lokasi/Daerah', 'Sumber Leads', 'Nama/Instansi Client', 'Asal Client', 'No HP Client'];
       for (int c = 0; c < detailHeaders.length; c++) {
         writeCell(detailSheet, c, dr, TextCellValue(detailHeaders[c]), headerStyle);
       }
@@ -112,17 +116,36 @@ class ExcelService {
       for (int i = 0; i < leads.length; i++) {
         final lead = leads[i];
         
-        writeCell(detailSheet, 0, dr, TextCellValue(formatDate(lead.tanggal)), dataNormalStyle);
-        writeCell(detailSheet, 1, dr, TextCellValue(lead.namaWilayah ?? '-'), dataNormalStyle);
-        writeCell(detailSheet, 2, dr, IntCellValue(lead.jumlah), dataBoldStyle);
-        totalLeadsSum += lead.jumlah;
+        if (division == 'marketing') {
+          final l = lead as LeadsModel;
+          writeCell(detailSheet, 0, dr, TextCellValue(formatDate(l.tanggal)), dataNormalStyle);
+          writeCell(detailSheet, 1, dr, TextCellValue(l.namaWilayah ?? '-'), dataNormalStyle);
+          writeCell(detailSheet, 2, dr, IntCellValue(l.jumlah), dataBoldStyle);
+          totalLeadsSum += l.jumlah;
+        } else {
+          final l = lead as LeadsTourModel;
+          writeCell(detailSheet, 0, dr, TextCellValue(formatDate(l.tanggal)), dataNormalStyle);
+          writeCell(detailSheet, 1, dr, TextCellValue(l.lokasi), dataNormalStyle);
+          writeCell(detailSheet, 2, dr, TextCellValue(l.namaSumber ?? '-'), dataNormalStyle);
+          writeCell(detailSheet, 3, dr, TextCellValue(l.namaClient), dataNormalStyle);
+          writeCell(detailSheet, 4, dr, TextCellValue(l.asalClient), dataNormalStyle);
+          writeCell(detailSheet, 5, dr, TextCellValue(l.noHpClient), dataNormalStyle);
+          totalLeadsSum += 1;
+        }
         dr++;
       }
 
       // Add Total Row at the bottom of Detail Leads sheet
       writeCell(detailSheet, 0, dr, TextCellValue('Total'), totalRowStyle);
-      writeCell(detailSheet, 1, dr, TextCellValue(''), totalRowStyle);
-      writeCell(detailSheet, 2, dr, IntCellValue(totalLeadsSum), totalRowStyle);
+      if (division == 'marketing') {
+        writeCell(detailSheet, 1, dr, TextCellValue(''), totalRowStyle);
+        writeCell(detailSheet, 2, dr, IntCellValue(totalLeadsSum), totalRowStyle);
+      } else {
+        for (int c = 1; c < 5; c++) {
+          writeCell(detailSheet, c, dr, TextCellValue(''), totalRowStyle);
+        }
+        writeCell(detailSheet, 5, dr, IntCellValue(totalLeadsSum), totalRowStyle);
+      }
       
       // --- Sheet 2: Laporan Menyamping (Second Tab) ---
       if (leads.isNotEmpty) {
@@ -130,10 +153,20 @@ class ExcelService {
         int mr = 0;
 
         // Get unique sorted dates
-        final List<String> sortedDates = leads.map((l) => l.tanggal).toSet().toList()..sort();
+        final List<String> sortedDates = leads
+            .map((l) => l is LeadsModel ? l.tanggal : (l as LeadsTourModel).tanggal)
+            .toSet()
+            .toList()
+            .cast<String>()
+          ..sort();
         
-        // Get unique wilayah names
-        final Set<String> wilayahNames = leads.map((l) => l.namaWilayah ?? 'Unknown').toSet();
+        // Get unique lokasi/wilayah names
+        final Set<String> wilayahNames = leads
+            .map((l) => division == 'marketing'
+                ? ((l as LeadsModel).namaWilayah ?? 'Unknown')
+                : (l as LeadsTourModel).lokasi)
+            .toSet()
+            .cast<String>();
 
         // Populate matrix map
         final Map<String, Map<String, int>> matrix = {};
@@ -141,18 +174,20 @@ class ExcelService {
           matrix[w] = { for (var d in sortedDates) d : 0 };
         }
         for (var l in leads) {
-          final wName = l.namaWilayah ?? 'Unknown';
-          matrix[wName]?[l.tanggal] = (matrix[wName]?[l.tanggal] ?? 0) + l.jumlah;
+          final wName = division == 'marketing' ? ((l as LeadsModel).namaWilayah ?? 'Unknown') : (l as LeadsTourModel).lokasi;
+          final count = division == 'marketing' ? (l as LeadsModel).jumlah : 1;
+          final String dateStr = l is LeadsModel ? l.tanggal : (l as LeadsTourModel).tanggal;
+          matrix[wName]?[dateStr] = (matrix[wName]?[dateStr] ?? 0) + count;
         }
 
         // Title
-        writeCell(matrixSheet, 0, mr, TextCellValue('LAPORAN HARIAN WILAYAH (MENYAMPING)'), titleStyle);
+        writeCell(matrixSheet, 0, mr, TextCellValue(division == 'marketing' ? 'LAPORAN HARIAN WILAYAH (MENYAMPING)' : 'LAPORAN HARIAN LOKASI (MENYAMPING)'), titleStyle);
         mr++;
         writeCell(matrixSheet, 0, mr, TextCellValue('Tanggal Export: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}'), metaStyle);
         mr += 2; // Blank row separator
 
         // Headers
-        writeCell(matrixSheet, 0, mr, TextCellValue('Wilayah'), headerStyle);
+        writeCell(matrixSheet, 0, mr, TextCellValue(division == 'marketing' ? 'Wilayah' : 'Lokasi/Daerah'), headerStyle);
         for (int c = 0; c < sortedDates.length; c++) {
           final date = sortedDates[c];
           writeCell(matrixSheet, c + 1, mr, TextCellValue(formatDate(date)), headerStyle);
@@ -207,12 +242,15 @@ class ExcelService {
       writeCell(summarySheet, 1, r, TextCellValue('Nilai'), headerStyle);
       r++;
       
-      // Removed 'bestSumber' from summary statistics as requested
       final statsData = [
         {'label': 'Total Leads', 'val': IntCellValue(summaryStats['totalLeads'] as int? ?? 0), 'isNum': true},
         {'label': 'Rata-rata Leads/Hari', 'val': DoubleCellValue(summaryStats['averageLeads'] as double? ?? 0.0), 'isNum': true},
         {'label': 'Total Hari Aktif', 'val': IntCellValue(summaryStats['totalActiveDays'] as int? ?? 0), 'isNum': true},
-        {'label': 'Wilayah Terbaik', 'val': TextCellValue(summaryStats['bestWilayah'] as String? ?? '-'), 'isNum': false},
+        {
+          'label': division == 'marketing' ? 'Wilayah Terbaik' : 'Lokasi Terbaik', 
+          'val': TextCellValue(summaryStats['bestWilayah'] as String? ?? '-'), 
+          'isNum': false
+        },
       ];
 
       for (int i = 0; i < statsData.length; i++) {

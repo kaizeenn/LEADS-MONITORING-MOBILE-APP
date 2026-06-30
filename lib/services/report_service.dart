@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/leads_model.dart';
+import '../models/leads_tour_model.dart';
 
 class ReportService {
   static const String apiBaseUrl = 'http://localhost:3000/api';
@@ -29,24 +30,31 @@ class ReportService {
   }
 
   // Fetch filtered leads
-  Future<List<LeadsModel>> getFilteredLeads(
+  Future<List<dynamic>> getFilteredLeads(
     String token, {
+    String division = 'marketing',
     String? startDate,
     String? endDate,
     int? wilayahId,
     int? sumberId,
+    String? lokasi,
   }) async {
     try {
       final queryParams = <String>[];
       if (startDate != null) queryParams.add('startDate=$startDate');
       if (endDate != null) queryParams.add('endDate=$endDate');
-      if (wilayahId != null) queryParams.add('wilayah_id=$wilayahId');
+      if (division == 'marketing') {
+        if (wilayahId != null) queryParams.add('wilayah_id=$wilayahId');
+      } else {
+        if (lokasi != null && lokasi.isNotEmpty) queryParams.add('lokasi=$lokasi');
+      }
       if (sumberId != null) queryParams.add('sumber_id=$sumberId');
 
       final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final endpoint = division == 'marketing' ? '/leads' : '/leads-tour';
 
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/leads$queryString'),
+        Uri.parse('$apiBaseUrl$endpoint$queryString'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -55,7 +63,11 @@ class ReportService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        return data.map((e) => LeadsModel.fromMap(e)).toList();
+        if (division == 'marketing') {
+          return data.map((e) => LeadsModel.fromMap(e)).toList();
+        } else {
+          return data.map((e) => LeadsTourModel.fromMap(e)).toList();
+        }
       } else {
         throw Exception('Failed to load filtered leads from server');
       }
@@ -66,10 +78,11 @@ class ReportService {
   }
 
   // Get dashboard statistics
-  Future<Map<String, dynamic>> getDashboardStats(String token) async {
+  Future<Map<String, dynamic>> getDashboardStats(String token, {String division = 'marketing'}) async {
     try {
+      final endpoint = division == 'marketing' ? '/dashboard' : '/dashboard-tour';
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/dashboard'),
+        Uri.parse('$apiBaseUrl$endpoint'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

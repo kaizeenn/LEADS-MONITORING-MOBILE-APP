@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import '../models/leads_model.dart';
+import '../models/leads_tour_model.dart';
 
 class PdfService {
   // Helper to build a polished, professional report header
@@ -25,7 +26,7 @@ class PdfService {
               pw.Text(
                 title,
                 style: pw.TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: pw.FontWeight.bold,
                   color: const PdfColor.fromInt(0xFF1E3A8A),
                 ),
@@ -180,22 +181,26 @@ class PdfService {
   }
 
   Future<String?> exportToPdf(
-    List<LeadsModel> leads,
+    List<dynamic> leads,
     Map<String, dynamic> summaryStats,
-    String periodText,
-  ) async {
+    String periodText, {
+    String division = 'marketing',
+  }) async {
     try {
       final pdf = pw.Document();
 
-      // Prepare Wilayah data for chart (Top 5)
-      final Map<String, int> wilayahData = {};
+      // Prepare Wilayah/Lokasi data for chart (Top 5)
+      final Map<String, int> chartData = {};
       for (var lead in leads) {
-        final name = lead.namaWilayah ?? 'Unknown';
-        wilayahData[name] = (wilayahData[name] ?? 0) + lead.jumlah;
+        final name = division == 'marketing' 
+            ? ((lead as LeadsModel).namaWilayah ?? 'Unknown') 
+            : (lead as LeadsTourModel).lokasi;
+        final count = division == 'marketing' ? (lead as LeadsModel).jumlah : 1;
+        chartData[name] = (chartData[name] ?? 0) + count;
       }
-      final sortedWilayah = wilayahData.entries.toList()
+      final sortedChart = chartData.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
-      final int maxWilayahVal = sortedWilayah.isNotEmpty ? sortedWilayah.first.value : 1;
+      final int maxChartVal = sortedChart.isNotEmpty ? sortedChart.first.value : 1;
 
       pdf.addPage(
         pw.MultiPage(
@@ -203,7 +208,9 @@ class PdfService {
           margin: const pw.EdgeInsets.all(36), // Margins: 0.5 inch / 36pt
           build: (pw.Context context) {
             // Calculate total leads for detail table bottom row
-            final totalLeadsSum = leads.fold<int>(0, (sum, l) => sum + l.jumlah);
+            final totalLeadsSum = division == 'marketing'
+                ? leads.fold<int>(0, (sum, l) => sum + (l as LeadsModel).jumlah)
+                : leads.length;
 
             return [
               // Header
@@ -214,7 +221,7 @@ class PdfService {
               _buildSectionHeader('STATISTIK RINGKASAN'),
               pw.SizedBox(height: 8),
               
-              // Statistics Cards (4 columns now as Sumber is removed)
+              // Statistics Cards
               pw.Row(
                 children: [
                   pw.Expanded(child: _buildStatCard('Total Leads', '${summaryStats['totalLeads']}', const PdfColor.fromInt(0xFF1E3A8A))),
@@ -223,16 +230,18 @@ class PdfService {
                   pw.SizedBox(width: 8),
                   pw.Expanded(child: _buildStatCard('Hari Aktif', '${summaryStats['totalActiveDays']}', const PdfColor.fromInt(0xFF0D9488))),
                   pw.SizedBox(width: 8),
-                  pw.Expanded(child: _buildStatCard('Top Wilayah', '${summaryStats['bestWilayah']}', const PdfColor.fromInt(0xFF0F766E))),
+                  pw.Expanded(child: _buildStatCard(division == 'marketing' ? 'Top Wilayah' : 'Top Lokasi', '${summaryStats['bestWilayah']}', const PdfColor.fromInt(0xFF0F766E))),
                 ],
               ),
               pw.SizedBox(height: 20),
 
-              // Horizontal Bar Chart for Wilayah
-              _buildSectionHeader('GRAFIK LEADS BERDASARKAN WILAYAH (Top 5)'),
+              // Horizontal Bar Chart
+              _buildSectionHeader(division == 'marketing' 
+                  ? 'GRAFIK LEADS BERDASARKAN WILAYAH (Top 5)' 
+                  : 'GRAFIK LEADS BERDASARKAN LOKASI (Top 5)'),
               pw.SizedBox(height: 8),
-              ...sortedWilayah.take(5).map((e) {
-                final double percent = e.value / maxWilayahVal;
+              ...sortedChart.take(5).map((e) {
+                final double percent = e.value / maxChartVal;
                 return _buildBarChartRow(e.key, e.value, percent, const PdfColor.fromInt(0xFF2563EB));
               }),
               pw.SizedBox(height: 20),
@@ -248,70 +257,74 @@ class PdfService {
                   // Header row
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF1E3A8A)),
-                    children: ['Tanggal', 'Wilayah', 'Jumlah'].map((h) {
-                      final isJumlah = h == 'Jumlah';
+                    children: (division == 'marketing'
+                        ? ['Tanggal', 'Wilayah', 'Jumlah']
+                        : ['Tanggal', 'Lokasi', 'Sumber', 'Client', 'Asal', 'No HP']).map((h) {
+                      final isLast = h == 'Jumlah' || h == 'No HP';
                       return pw.Padding(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
                         child: pw.Text(
                           h,
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             color: PdfColors.white,
-                            fontSize: 9,
+                            fontSize: 8.5,
                           ),
-                          textAlign: isJumlah ? pw.TextAlign.right : pw.TextAlign.left,
+                          textAlign: isLast ? pw.TextAlign.right : pw.TextAlign.left,
                         ),
                       );
                     }).toList(),
                   ),
                   // Data rows
                   ...List.generate(leads.length, (index) {
-                    final l = leads[index];
+                    final lead = leads[index];
                     final isOdd = index % 2 == 1;
+                    final List<String> cells;
+                    if (division == 'marketing') {
+                      final l = lead as LeadsModel;
+                      cells = [l.tanggal, l.namaWilayah ?? '-', l.jumlah.toString()];
+                    } else {
+                      final l = lead as LeadsTourModel;
+                      cells = [l.tanggal, l.lokasi, l.namaSumber ?? '-', l.namaClient, l.asalClient, l.noHpClient];
+                    }
+
                     return pw.TableRow(
                       decoration: pw.BoxDecoration(
                         color: isOdd ? const PdfColor.fromInt(0xFFF8FAFC) : PdfColors.white,
                       ),
-                      children: [
-                        l.tanggal,
-                        l.namaWilayah ?? '-',
-                        l.jumlah.toString(),
-                      ].asMap().entries.map((entry) {
-                        final colIdx = entry.key;
-                        final val = entry.value;
-                        final isJumlah = colIdx == 2;
+                      children: List.generate(cells.length, (colIdx) {
+                        final val = cells[colIdx];
+                        final isLast = colIdx == cells.length - 1;
                         return pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
                           child: pw.Text(
                             val,
-                            style: pw.TextStyle(fontSize: 8.5, color: PdfColors.grey900),
-                            textAlign: isJumlah ? pw.TextAlign.right : pw.TextAlign.left,
+                            style: pw.TextStyle(fontSize: 8, color: PdfColors.grey900),
+                            textAlign: isLast ? pw.TextAlign.right : pw.TextAlign.left,
                           ),
                         );
-                      }).toList(),
+                      }),
                     );
                   }),
                   // Bottom Total row
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFEEF2F6)),
-                    children: [
-                      'Total',
-                      '',
-                      totalLeadsSum.toString(),
-                    ].asMap().entries.map((entry) {
+                    children: (division == 'marketing'
+                        ? ['Total', '', totalLeadsSum.toString()]
+                        : ['Total', '', '', '', '', totalLeadsSum.toString()]).asMap().entries.map((entry) {
                       final colIdx = entry.key;
                       final val = entry.value;
-                      final isJumlah = colIdx == 2;
+                      final isLast = division == 'marketing' ? colIdx == 2 : colIdx == 5;
                       return pw.Padding(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
                         child: pw.Text(
                           val,
                           style: pw.TextStyle(
-                            fontSize: 9,
+                            fontSize: 8.5,
                             fontWeight: pw.FontWeight.bold,
                             color: const PdfColor.fromInt(0xFF1E3A8A),
                           ),
-                          textAlign: isJumlah ? pw.TextAlign.right : pw.TextAlign.left,
+                          textAlign: isLast ? pw.TextAlign.right : pw.TextAlign.left,
                         ),
                       );
                     }).toList(),
@@ -325,19 +338,31 @@ class PdfService {
 
       // If we have leads, add a second page in landscape format specifically for the matrix
       if (leads.isNotEmpty) {
-        final List<String> sortedDates = leads.map((l) => l.tanggal).toSet().toList()..sort();
-        final Set<String> wilayahNames = leads.map((l) => l.namaWilayah ?? 'Unknown').toSet();
+        final List<String> sortedDates = leads
+            .map((l) => l is LeadsModel ? l.tanggal : (l as LeadsTourModel).tanggal)
+            .toSet()
+            .toList()
+            .cast<String>()
+          ..sort();
+        final Set<String> wilayahNames = leads
+            .map((l) => division == 'marketing'
+                ? ((l as LeadsModel).namaWilayah ?? 'Unknown')
+                : (l as LeadsTourModel).lokasi)
+            .toSet()
+            .cast<String>();
 
         final Map<String, Map<String, int>> matrix = {};
         for (var w in wilayahNames) {
           matrix[w] = { for (var d in sortedDates) d : 0 };
         }
         for (var l in leads) {
-          final wName = l.namaWilayah ?? 'Unknown';
-          matrix[wName]?[l.tanggal] = (matrix[wName]?[l.tanggal] ?? 0) + l.jumlah;
+          final wName = division == 'marketing' ? ((l as LeadsModel).namaWilayah ?? 'Unknown') : (l as LeadsTourModel).lokasi;
+          final count = division == 'marketing' ? (l as LeadsModel).jumlah : 1;
+          final String dateStr = l is LeadsModel ? l.tanggal : (l as LeadsTourModel).tanggal;
+          matrix[wName]?[dateStr] = (matrix[wName]?[dateStr] ?? 0) + count;
         }
 
-        final List<String> pdfHeaders = ['Wilayah'];
+        final List<String> pdfHeaders = [division == 'marketing' ? 'Wilayah' : 'Lokasi/Daerah'];
         for (final date in sortedDates) {
           final parts = date.split('-');
           final shortDate = parts.length > 2 ? '${parts[2]}/${parts[1]}' : date;
@@ -377,7 +402,7 @@ class PdfService {
               return pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  _buildHeader('LAPORAN HARIAN WILAYAH (MENYAMPING)', periodText),
+                  _buildHeader(division == 'marketing' ? 'LAPORAN HARIAN WILAYAH (MENYAMPING)' : 'LAPORAN HARIAN LOKASI (MENYAMPING)', periodText),
                   pw.SizedBox(height: 15),
                   pw.Table(
                     border: const pw.TableBorder(

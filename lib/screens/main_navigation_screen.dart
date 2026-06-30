@@ -20,13 +20,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const AddDataScreen(),
-    const LaporanScreen(),
-    const SettingsScreen(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -42,21 +35,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
 
     final token = context.read<AuthProvider>().token ?? '';
+    final isOwner = context.read<AuthProvider>().userRole == 'owner';
+    
     // Refresh state when specific tabs are selected
     if (index == 0) {
       context.read<DashboardProvider>().refreshDashboard(token);
-    } else if (index == 2) {
+    } else if ((isOwner && index == 1) || (!isOwner && index == 2)) {
       context.read<LaporanProvider>().loadReport(token);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isOwner = context.watch<AuthProvider>().userRole == 'owner';
+    final screens = [
+      const HomeScreen(),
+      if (!isOwner) const AddDataScreen(),
+      const LaporanScreen(),
+      const SettingsScreen(),
+    ];
+
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -93,8 +96,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               unselectedItemColor: AppColors.textSecondary,
               selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
-              items: const [
-                BottomNavigationBarItem(
+              items: [
+                const BottomNavigationBarItem(
                   icon: Padding(
                     padding: EdgeInsets.only(bottom: 2),
                     child: Icon(Icons.dashboard_outlined, size: 20),
@@ -105,18 +108,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   label: 'Home',
                 ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: EdgeInsets.only(bottom: 2),
-                    child: Icon(Icons.add_box_outlined, size: 20),
+                if (!isOwner)
+                  const BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: EdgeInsets.only(bottom: 2),
+                      child: Icon(Icons.add_box_outlined, size: 20),
+                    ),
+                    activeIcon: Padding(
+                      padding: EdgeInsets.only(bottom: 2),
+                      child: Icon(Icons.add_box, size: 20),
+                    ),
+                    label: 'Add Data',
                   ),
-                  activeIcon: Padding(
-                    padding: EdgeInsets.only(bottom: 2),
-                    child: Icon(Icons.add_box, size: 20),
-                  ),
-                  label: 'Add Data',
-                ),
-                BottomNavigationBarItem(
+                const BottomNavigationBarItem(
                   icon: Padding(
                     padding: EdgeInsets.only(bottom: 2),
                     child: Icon(Icons.analytics_outlined, size: 20),
@@ -127,7 +131,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   label: 'Laporan',
                 ),
-                BottomNavigationBarItem(
+                const BottomNavigationBarItem(
                   icon: Padding(
                     padding: EdgeInsets.only(bottom: 2),
                     child: Icon(Icons.settings_outlined, size: 20),

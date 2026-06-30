@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/leads_model.dart';
+import '../models/leads_tour_model.dart';
 import '../services/report_service.dart';
 import '../services/excel_service.dart';
 import '../services/pdf_service.dart';
@@ -12,8 +13,10 @@ class LaporanProvider extends ChangeNotifier {
   DateTime _endDate = DateTime.now();
   int? _wilayahId;
   int? _sumberId;
+  String? _lokasi;
+  String _currentDivision = 'marketing';
 
-  List<LeadsModel> _filteredLeads = [];
+  List<dynamic> _filteredLeads = [];
   bool _isLoading = false;
 
   // Sorting
@@ -31,7 +34,9 @@ class LaporanProvider extends ChangeNotifier {
   DateTime get endDate => _endDate;
   int? get wilayahId => _wilayahId;
   int? get sumberId => _sumberId;
-  List<LeadsModel> get filteredLeads => _filteredLeads;
+  String? get lokasi => _lokasi;
+  String get currentDivision => _currentDivision;
+  List<dynamic> get filteredLeads => _filteredLeads;
   bool get isLoading => _isLoading;
   String get sortColumn => _sortColumn;
   bool get isAscending => _isAscending;
@@ -57,9 +62,22 @@ class LaporanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setLokasi(String? loc) {
+    _lokasi = loc;
+    notifyListeners();
+  }
+
   void setSumberId(int? id) {
     _sumberId = id;
     notifyListeners();
+  }
+
+  void setDivision(String div, String token) {
+    _currentDivision = div;
+    _wilayahId = null;
+    _lokasi = null;
+    _sumberId = null;
+    loadReport(token);
   }
 
   Future<void> loadReport(String token) async {
@@ -73,10 +91,12 @@ class LaporanProvider extends ChangeNotifier {
 
       final result = await _reportService.getFilteredLeads(
         token,
+        division: _currentDivision,
         startDate: startStr,
         endDate: endStr,
         wilayahId: _wilayahId,
         sumberId: _sumberId,
+        lokasi: _lokasi,
       );
 
       _filteredLeads = result;
@@ -97,14 +117,29 @@ class LaporanProvider extends ChangeNotifier {
     final Map<String, int> sumberSums = {};
 
     for (final lead in _filteredLeads) {
-      total += lead.jumlah;
-      activeDates.add(lead.tanggal);
-      
-      final wName = lead.namaWilayah ?? '-';
-      wilayahSums[wName] = (wilayahSums[wName] ?? 0) + lead.jumlah;
+      final int amount;
+      final String locName;
+      final String sName;
+      final String dateStr;
 
-      final sName = lead.namaSumber ?? '-';
-      sumberSums[sName] = (sumberSums[sName] ?? 0) + lead.jumlah;
+      if (_currentDivision == 'marketing') {
+        final l = lead as LeadsModel;
+        amount = l.jumlah;
+        locName = l.namaWilayah ?? '-';
+        sName = l.namaSumber ?? '-';
+        dateStr = l.tanggal;
+      } else {
+        final l = lead as LeadsTourModel;
+        amount = 1;
+        locName = l.lokasi;
+        sName = l.namaSumber ?? '-';
+        dateStr = l.tanggal;
+      }
+
+      total += amount;
+      activeDates.add(dateStr);
+      wilayahSums[locName] = (wilayahSums[locName] ?? 0) + amount;
+      sumberSums[sName] = (sumberSums[sName] ?? 0) + amount;
     }
 
     _totalLeads = total;
@@ -147,19 +182,23 @@ class LaporanProvider extends ChangeNotifier {
   void _performSort() {
     if (_sortColumn == 'Tanggal') {
       _filteredLeads.sort((a, b) {
-        int cmp = a.tanggal.compareTo(b.tanggal);
+        final String tA = a is LeadsModel ? a.tanggal : (a as LeadsTourModel).tanggal;
+        final String tB = b is LeadsModel ? b.tanggal : (b as LeadsTourModel).tanggal;
+        int cmp = tA.compareTo(tB);
         return _isAscending ? cmp : -cmp;
       });
     } else if (_sortColumn == 'Wilayah') {
       _filteredLeads.sort((a, b) {
-        String wA = a.namaWilayah ?? '';
-        String wB = b.namaWilayah ?? '';
+        final String wA = a is LeadsModel ? (a.namaWilayah ?? '') : (a as LeadsTourModel).lokasi;
+        final String wB = b is LeadsModel ? (b.namaWilayah ?? '') : (b as LeadsTourModel).lokasi;
         int cmp = wA.compareTo(wB);
         return _isAscending ? cmp : -cmp;
       });
     } else if (_sortColumn == 'Jumlah') {
       _filteredLeads.sort((a, b) {
-        int cmp = a.jumlah.compareTo(b.jumlah);
+        final int jA = a is LeadsModel ? a.jumlah : 1;
+        final int jB = b is LeadsModel ? b.jumlah : 1;
+        int cmp = jA.compareTo(jB);
         return _isAscending ? cmp : -cmp;
       });
     }
@@ -174,7 +213,7 @@ class LaporanProvider extends ChangeNotifier {
       'bestWilayah': _bestWilayah,
       'bestSumber': _bestSumber,
     };
-    return await excelService.exportToExcel(_filteredLeads, stats);
+    return await excelService.exportToExcel(_filteredLeads, stats, division: _currentDivision);
   }
 
   Future<String?> exportPdf() async {
@@ -188,6 +227,6 @@ class LaporanProvider extends ChangeNotifier {
     };
     final df = DateFormat('dd/MM/yyyy');
     final periodText = '${df.format(_startDate)} s/d ${df.format(_endDate)}';
-    return await pdfService.exportToPdf(_filteredLeads, stats, periodText);
+    return await pdfService.exportToPdf(_filteredLeads, stats, periodText, division: _currentDivision);
   }
 }

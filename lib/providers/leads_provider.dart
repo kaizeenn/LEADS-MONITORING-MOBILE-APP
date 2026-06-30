@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
 import 'package:http/http.dart' as http;
 import '../models/leads_model.dart';
+import '../models/leads_tour_model.dart';
 import '../models/wilayah_model.dart';
 import '../models/sumber_leads_model.dart';
 
@@ -13,11 +14,13 @@ class LeadsProvider extends ChangeNotifier {
   List<WilayahModel> _wilayahList = [];
   List<SumberLeadsModel> _sumberLeadsList = [];
   List<LeadsModel> _leadsList = [];
+  List<LeadsTourModel> _leadsTourList = [];
   bool _isLoading = false;
 
   List<WilayahModel> get wilayahList => _wilayahList;
   List<SumberLeadsModel> get sumberLeadsList => _sumberLeadsList;
   List<LeadsModel> get leadsList => _leadsList;
+  List<LeadsTourModel> get leadsTourList => _leadsTourList;
   bool get isLoading => _isLoading;
 
   Future<void> loadInitialData(String token) async {
@@ -49,6 +52,7 @@ class LeadsProvider extends ChangeNotifier {
 
       // Load Leads from API
       await loadLeads(token);
+      await loadLeadsTour(token);
     } catch (e) {
       print('Error loading initial data: $e');
     } finally {
@@ -274,6 +278,112 @@ class LeadsProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       print('Error deleting lead: $e');
+      return false;
+    }
+  }
+
+  Future<void> loadLeadsTour(String token) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$apiBaseUrl/leads-tour'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (res.statusCode == 200) {
+        final List<dynamic> data = json.decode(res.body);
+        _leadsTourList = data.map((e) => LeadsTourModel.fromMap(e)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading tour leads: $e');
+    }
+  }
+
+  Future<bool> addLeadTour(String token, {
+    required String lokasi,
+    required int sumberId,
+    required String tanggal,
+    required String namaClient,
+    required String asalClient,
+    required String noHpClient,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$apiBaseUrl/leads-tour'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'lokasi': lokasi.trim(),
+          'sumber_id': sumberId,
+          'tanggal': tanggal,
+          'nama_client': namaClient.trim(),
+          'asal_client': asalClient.trim(),
+          'no_hp_client': noHpClient.trim(),
+        }),
+      );
+
+      if (res.statusCode == 201) {
+        await loadLeadsTour(token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error adding tour lead: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateLeadTour(String token, LeadsTourModel lead) async {
+    try {
+      final res = await http.put(
+        Uri.parse('$apiBaseUrl/leads-tour/${lead.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'lokasi': lead.lokasi.trim(),
+          'sumber_id': lead.sumberId,
+          'tanggal': lead.tanggal,
+          'nama_client': lead.namaClient.trim(),
+          'asal_client': lead.asalClient.trim(),
+          'no_hp_client': lead.noHpClient.trim(),
+        }),
+      );
+
+      if (res.statusCode == 200) {
+        await loadLeadsTour(token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error updating tour lead: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteLeadTour(String token, int id) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$apiBaseUrl/leads-tour/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (res.statusCode == 200) {
+        await loadLeadsTour(token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting tour lead: $e');
       return false;
     }
   }
