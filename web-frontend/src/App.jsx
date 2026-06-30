@@ -85,11 +85,15 @@ export default function App() {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Active Division Tab
+  const [activeDivisi, setActiveDivisi] = useState('marketing');
+
   // Filters
   const [filterWilayah, setFilterWilayah] = useState('');
   const [filterSumber, setFilterSumber] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterLokasi, setFilterLokasi] = useState('');
 
   // Modals state
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
@@ -121,6 +125,10 @@ export default function App() {
   const [formSumberId, setFormSumberId] = useState('');
   const [formTanggal, setFormTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [formJumlah, setFormJumlah] = useState('');
+  const [formLokasi, setFormLokasi] = useState('');
+  const [formNamaClient, setFormNamaClient] = useState('');
+  const [formAsalClient, setFormAsalClient] = useState('');
+  const [formNoHpClient, setFormNoHpClient] = useState('');
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
 
@@ -138,6 +146,9 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setUser(data.user);
+        if (data.user.role === 'karyawan') {
+          setActiveDivisi(data.user.bagian || 'marketing');
+        }
       } else {
         handleLogout();
       }
@@ -156,16 +167,28 @@ export default function App() {
       // Build query string for leads filter
       let query = '';
       const params = [];
-      if (filterWilayah) params.push(`wilayah_id=${filterWilayah}`);
+      if (activeDivisi === 'marketing') {
+        if (filterWilayah) params.push(`wilayah_id=${filterWilayah}`);
+      } else {
+        if (filterLokasi) params.push(`lokasi=${filterLokasi}`);
+      }
       if (filterSumber) params.push(`sumber_id=${filterSumber}`);
       if (filterStartDate) params.push(`startDate=${filterStartDate}`);
       if (filterEndDate) params.push(`endDate=${filterEndDate}`);
       if (params.length > 0) query = '?' + params.join('&');
 
+      const statsUrl = activeDivisi === 'marketing' 
+        ? `${API_URL}/dashboard` 
+        : `${API_URL}/dashboard-tour`;
+
+      const leadsUrl = activeDivisi === 'marketing'
+        ? `${API_URL}/leads${query}`
+        : `${API_URL}/leads-tour${query}`;
+
       // Parallel requests
       const promises = [
-        fetch(`${API_URL}/dashboard`, { headers }),
-        fetch(`${API_URL}/leads${query}`, { headers }),
+        fetch(statsUrl, { headers }),
+        fetch(leadsUrl, { headers }),
         fetch(`${API_URL}/wilayah`, { headers }),
         fetch(`${API_URL}/sumber`, { headers })
       ];
@@ -197,7 +220,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [token, filterWilayah, filterSumber, filterStartDate, filterEndDate, user]);
+  }, [token, activeDivisi, filterWilayah, filterLokasi, filterSumber, filterStartDate, filterEndDate, user]);
 
   useEffect(() => {
     if (token) {
@@ -232,6 +255,11 @@ export default function App() {
         setToken(data.token);
         setUser(data.user);
         setLoginPassword('');
+        if (data.user.role === 'karyawan') {
+          setActiveDivisi(data.user.bagian || 'marketing');
+        } else {
+          setActiveDivisi('marketing');
+        }
       } else {
         setAuthError(data.error || 'Login gagal.');
       }
@@ -254,16 +282,27 @@ export default function App() {
   const handleOpenLeadModal = (lead = null) => {
     if (lead) {
       setEditingLead(lead);
-      setFormWilayahId(lead.wilayah_id);
       setFormSumberId(lead.sumber_id);
       setFormTanggal(lead.tanggal.split('T')[0]);
-      setFormJumlah(lead.jumlah);
+      if (activeDivisi === 'marketing') {
+        setFormWilayahId(lead.wilayah_id);
+        setFormJumlah(lead.jumlah);
+      } else {
+        setFormLokasi(lead.lokasi);
+        setFormNamaClient(lead.nama_client);
+        setFormAsalClient(lead.asal_client);
+        setFormNoHpClient(lead.no_hp_client);
+      }
     } else {
       setEditingLead(null);
       setFormWilayahId('');
       setFormSumberId('');
       setFormTanggal(new Date().toISOString().split('T')[0]);
       setFormJumlah('');
+      setFormLokasi('');
+      setFormNamaClient('');
+      setFormAsalClient('');
+      setFormNoHpClient('');
     }
     setFormError('');
     setIsLeadModalOpen(true);
@@ -271,29 +310,49 @@ export default function App() {
 
   const handleSaveLead = async (e) => {
     e.preventDefault();
-    if (!formWilayahId || !formSumberId || !formTanggal || formJumlah === '') {
-      setFormError('Semua kolom wajib diisi.');
-      return;
+    if (activeDivisi === 'marketing') {
+      if (!formWilayahId || !formSumberId || !formTanggal || formJumlah === '') {
+        setFormError('Semua kolom wajib diisi.');
+        return;
+      }
+    } else {
+      if (!formLokasi || !formSumberId || !formTanggal || !formNamaClient || !formAsalClient || !formNoHpClient) {
+        setFormError('Semua kolom wajib diisi.');
+        return;
+      }
     }
 
     setFormLoading(true);
     setFormError('');
     try {
       const method = editingLead ? 'PUT' : 'POST';
-      const url = editingLead ? `${API_URL}/leads/${editingLead.id}` : `${API_URL}/leads`;
+      const url = activeDivisi === 'marketing'
+        ? (editingLead ? `${API_URL}/leads/${editingLead.id}` : `${API_URL}/leads`)
+        : (editingLead ? `${API_URL}/leads-tour/${editingLead.id}` : `${API_URL}/leads-tour`);
       
+      const payload = activeDivisi === 'marketing'
+        ? {
+            wilayah_id: parseInt(formWilayahId),
+            sumber_id: parseInt(formSumberId),
+            tanggal: formTanggal,
+            jumlah: parseInt(formJumlah)
+          }
+        : {
+            lokasi: formLokasi.trim(),
+            sumber_id: parseInt(formSumberId),
+            tanggal: formTanggal,
+            nama_client: formNamaClient.trim(),
+            asal_client: formAsalClient.trim(),
+            no_hp_client: formNoHpClient.trim()
+          };
+
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          wilayah_id: parseInt(formWilayahId),
-          sumber_id: parseInt(formSumberId),
-          tanggal: formTanggal,
-          jumlah: parseInt(formJumlah)
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -314,7 +373,8 @@ export default function App() {
   const handleDeleteLead = async (id) => {
     if (!confirm('Apakah Anda yakin ingin menghapus data lead ini?')) return;
     try {
-      const res = await fetch(`${API_URL}/leads/${id}`, {
+      const url = activeDivisi === 'marketing' ? `${API_URL}/leads/${id}` : `${API_URL}/leads-tour/${id}`;
+      const res = await fetch(url, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -777,20 +837,65 @@ export default function App() {
       {/* Main Body */}
       <main className="main-content">
         
+        {/* Tabs for Admin / Owner */}
+        {(user.role === 'admin' || user.role === 'owner') && (
+          <div className="tabs-container" style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+            <button 
+              onClick={() => {
+                setActiveDivisi('marketing');
+                setFilterWilayah('');
+                setFilterSumber('');
+                setFilterStartDate('');
+                setFilterEndDate('');
+                setFilterLokasi('');
+              }} 
+              className={`tab-btn ${activeDivisi === 'marketing' ? 'active' : ''}`}
+            >
+              Divisi Marketing
+            </button>
+            <button 
+              onClick={() => {
+                setActiveDivisi('tour');
+                setFilterWilayah('');
+                setFilterSumber('');
+                setFilterStartDate('');
+                setFilterEndDate('');
+                setFilterLokasi('');
+              }} 
+              className={`tab-btn ${activeDivisi === 'tour' ? 'active' : ''}`}
+            >
+              Divisi Tour
+            </button>
+          </div>
+        )}
+
         {/* Filter Bar */}
         <section className="filter-bar">
-          <div className="filter-item">
-            <label className="form-label" style={{ marginBottom: '6px' }}>WILAYAH</label>
-            <CustomSelect 
-              value={filterWilayah} 
-              onChange={setFilterWilayah} 
-              options={[
-                { value: '', label: 'Semua Wilayah' },
-                ...wilayah.map(w => ({ value: String(w.id), label: w.nama_wilayah }))
-              ]} 
-              placeholder="Semua Wilayah" 
-            />
-          </div>
+          {activeDivisi === 'marketing' ? (
+            <div className="filter-item">
+              <label className="form-label" style={{ marginBottom: '6px' }}>WILAYAH</label>
+              <CustomSelect 
+                value={filterWilayah} 
+                onChange={setFilterWilayah} 
+                options={[
+                  { value: '', label: 'Semua Wilayah' },
+                  ...wilayah.map(w => ({ value: String(w.id), label: w.nama_wilayah }))
+                ]} 
+                placeholder="Semua Wilayah" 
+              />
+            </div>
+          ) : (
+            <div className="filter-item">
+              <label className="form-label" style={{ marginBottom: '6px' }}>LOKASI / DAERAH</label>
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="Cari lokasi..." 
+                value={filterLokasi} 
+                onChange={(e) => setFilterLokasi(e.target.value)} 
+              />
+            </div>
+          )}
 
           <div className="filter-item">
             <label className="form-label" style={{ marginBottom: '6px' }}>SUMBER LEADS</label>
@@ -820,6 +925,7 @@ export default function App() {
             setFilterSumber('');
             setFilterStartDate('');
             setFilterEndDate('');
+            setFilterLokasi('');
           }} className="btn btn-outline">
             Reset Filter
           </button>
@@ -863,7 +969,7 @@ export default function App() {
                 <MapPin size={22} />
               </div>
               <div className="stat-info">
-                <p className="stat-label">Top Wilayah</p>
+                <p className="stat-label">{activeDivisi === 'marketing' ? 'Top Wilayah' : 'Top Lokasi'}</p>
                 <h3 className="stat-value" style={{ fontSize: '16px' }}>{dashboardStats.bestWilayah}</h3>
               </div>
             </div>
@@ -890,10 +996,12 @@ export default function App() {
                 <span>Detail Data Leads ({leads.length})</span>
               </h2>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => handleOpenLeadModal()} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13.5px' }}>
-                  <Plus size={16} />
-                  <span>Input Leads</span>
-                </button>
+                {user.role !== 'owner' && (
+                  <button onClick={() => handleOpenLeadModal()} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13.5px' }}>
+                    <Plus size={16} />
+                    <span>Input Leads</span>
+                  </button>
+                )}
                 <button onClick={exportToExcel} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px', borderColor: '#10B981', color: '#10B981', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <FileSpreadsheet size={16} />
                   <span>Export Excel</span>
@@ -909,47 +1017,82 @@ export default function App() {
               <div className="table-responsive">
                 <table className="table">
                   <thead>
-                    <tr>
-                      <th>Tanggal</th>
-                      <th>Wilayah</th>
-                      <th>Sumber Leads</th>
-                      <th>Inputter</th>
-                      <th>Jumlah</th>
-                      <th style={{ textAlign: 'right' }}>Aksi</th>
-                    </tr>
+                    {activeDivisi === 'marketing' ? (
+                      <tr>
+                        <th>Tanggal</th>
+                        <th>Wilayah</th>
+                        <th>Sumber Leads</th>
+                        <th>Inputter</th>
+                        <th>Jumlah</th>
+                        {user.role !== 'owner' && <th style={{ textAlign: 'right' }}>Aksi</th>}
+                      </tr>
+                    ) : (
+                      <tr>
+                        <th>Tanggal</th>
+                        <th>Lokasi/Daerah</th>
+                        <th>Sumber Leads</th>
+                        <th>Nama/Instansi Client</th>
+                        <th>Asal Client</th>
+                        <th>No HP Client</th>
+                        <th>Inputter</th>
+                        {user.role !== 'owner' && <th style={{ textAlign: 'right' }}>Aksi</th>}
+                      </tr>
+                    )}
                   </thead>
                   <tbody>
                     {leads.map((lead, idx) => (
                       <tr key={lead.id} className={idx % 2 === 1 ? 'table-row-odd' : ''}>
                         <td>{formatDateStr(lead.tanggal)}</td>
-                        <td><strong>{lead.nama_wilayah}</strong></td>
-                        <td><span className="text-muted">{lead.nama_sumber}</span></td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <User size={12} className="text-muted" />
-                            <span style={{ fontSize: '12px' }}>{lead.nama_inputter}</span>
-                          </div>
-                        </td>
-                        <td className="badge-lead">{lead.jumlah}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          {(user.role === 'admin' || lead.user_id === user.id) && (
-                            <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
-                              <button onClick={() => handleOpenLeadModal(lead)} className="btn-icon btn-icon-primary" title="Edit">
-                                <Edit2 size={13} />
-                              </button>
-                              <button onClick={() => handleDeleteLead(lead.id)} className="btn-icon btn-icon-danger" title="Hapus">
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          )}
-                        </td>
+                        {activeDivisi === 'marketing' ? (
+                          <>
+                            <td><strong>{lead.nama_wilayah}</strong></td>
+                            <td><span className="text-muted">{lead.nama_sumber}</span></td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <User size={12} className="text-muted" />
+                                <span style={{ fontSize: '12px' }}>{lead.nama_inputter}</span>
+                              </div>
+                            </td>
+                            <td className="badge-lead">{lead.jumlah}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td><strong>{lead.lokasi}</strong></td>
+                            <td><span className="text-muted">{lead.nama_sumber}</span></td>
+                            <td>{lead.nama_client}</td>
+                            <td>{lead.asal_client}</td>
+                            <td><span style={{ fontFamily: 'monospace' }}>{lead.no_hp_client}</span></td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <User size={12} className="text-muted" />
+                                <span style={{ fontSize: '12px' }}>{lead.nama_inputter}</span>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                        {user.role !== 'owner' && (
+                          <td style={{ textAlign: 'right' }}>
+                            {(user.role === 'admin' || lead.user_id === user.id) && (
+                              <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
+                                <button onClick={() => handleOpenLeadModal(lead)} className="btn-icon btn-icon-primary" title="Edit">
+                                  <Edit2 size={13} />
+                                </button>
+                                <button onClick={() => handleDeleteLead(lead.id)} className="btn-icon btn-icon-danger" title="Hapus">
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {/* Total Row */}
                     <tr className="total-row">
-                      <td colSpan="4">TOTAL JUMLAH LEADS</td>
-                      <td className="badge-lead" style={{ fontSize: '14.5px', color: 'var(--primary)' }}>{totalLeadsSum}</td>
-                      <td></td>
+                      <td colSpan={activeDivisi === 'marketing' ? 4 : 6}>TOTAL JUMLAH LEADS</td>
+                      <td className="badge-lead" style={{ fontSize: '14.5px', color: 'var(--primary)' }}>
+                        {activeDivisi === 'marketing' ? totalLeadsSum : leads.length}
+                      </td>
+                      {user.role !== 'owner' && <td></td>}
                     </tr>
                   </tbody>
                 </table>
@@ -973,15 +1116,15 @@ export default function App() {
             <div className="panel">
               <h2 className="panel-title" style={{ marginBottom: '16px' }}>
                 <MapPin size={18} />
-                <span>Wilayah Teraktif (Top 5)</span>
+                <span>{activeDivisi === 'marketing' ? 'Wilayah Teraktif (Top 5)' : 'Lokasi Teraktif (Top 5)'}</span>
               </h2>
               <div className="chart-container">
                 {renderBarChart()}
               </div>
             </div>
 
-            {/* Leaderboard Panel (Admin Only) */}
-            {user.role === 'admin' && dashboardStats && dashboardStats.leaderboard && (
+            {/* Leaderboard Panel (Admin / Owner Only) */}
+            {(user.role === 'admin' || user.role === 'owner') && dashboardStats && dashboardStats.leaderboard && (
               <div className="panel">
                 <h2 className="panel-title" style={{ marginBottom: '16px' }}>
                   <Users size={18} />
@@ -1022,7 +1165,11 @@ export default function App() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3 className="modal-title">{editingLead ? 'Edit Data Lead' : 'Input Data Lead'}</h3>
+              <h3 className="modal-title">
+                {editingLead 
+                  ? (activeDivisi === 'marketing' ? 'Edit Data Lead Marketing' : 'Edit Data Lead Tour') 
+                  : (activeDivisi === 'marketing' ? 'Input Data Lead Marketing' : 'Input Data Lead Tour')}
+              </h3>
               <button className="modal-close" onClick={() => setIsLeadModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -1036,43 +1183,112 @@ export default function App() {
             )}
 
             <form onSubmit={handleSaveLead}>
-              <div className="form-group">
-                <label className="form-label">WILAYAH TUJUAN</label>
-                <CustomSelect 
-                  value={formWilayahId} 
-                  onChange={setFormWilayahId} 
-                  options={wilayah.map(w => ({ value: String(w.id), label: w.nama_wilayah }))} 
-                  placeholder="Pilih Wilayah" 
-                />
-              </div>
+              {activeDivisi === 'marketing' ? (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">WILAYAH TUJUAN</label>
+                    <CustomSelect 
+                      value={formWilayahId} 
+                      onChange={setFormWilayahId} 
+                      options={wilayah.map(w => ({ value: String(w.id), label: w.nama_wilayah }))} 
+                      placeholder="Pilih Wilayah" 
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label className="form-label">SUMBER LEADS</label>
-                <CustomSelect 
-                  value={formSumberId} 
-                  onChange={setFormSumberId} 
-                  options={sumber.map(s => ({ value: String(s.id), label: s.nama_sumber }))} 
-                  placeholder="Pilih Sumber" 
-                />
-              </div>
+                  <div className="form-group">
+                    <label className="form-label">SUMBER LEADS</label>
+                    <CustomSelect 
+                      value={formSumberId} 
+                      onChange={setFormSumberId} 
+                      options={sumber.map(s => ({ value: String(s.id), label: s.nama_sumber }))} 
+                      placeholder="Pilih Sumber" 
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label className="form-label">TANGGAL INPUT</label>
-                <input type="date" className="form-control" value={formTanggal} onChange={(e) => setFormTanggal(e.target.value)} required />
-              </div>
+                  <div className="form-group">
+                    <label className="form-label">TANGGAL INPUT</label>
+                    <input type="date" className="form-control" value={formTanggal} onChange={(e) => setFormTanggal(e.target.value)} required />
+                  </div>
 
-              <div className="form-group">
-                <label className="form-label">JUMLAH LEADS</label>
-                <input 
-                  type="number" 
-                  min="0"
-                  className="form-control" 
-                  placeholder="Masukkan jumlah leads"
-                  value={formJumlah} 
-                  onChange={(e) => setFormJumlah(e.target.value)} 
-                  required 
-                />
-              </div>
+                  <div className="form-group">
+                    <label className="form-label">JUMLAH LEADS</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      className="form-control" 
+                      placeholder="Masukkan jumlah leads"
+                      value={formJumlah} 
+                      onChange={(e) => setFormJumlah(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">LOKASI / DAERAH TUJUAN</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Contoh: Jogja, Bali, Malang"
+                      value={formLokasi} 
+                      onChange={(e) => setFormLokasi(e.target.value)} 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">SUMBER LEADS</label>
+                    <CustomSelect 
+                      value={formSumberId} 
+                      onChange={setFormSumberId} 
+                      options={sumber.map(s => ({ value: String(s.id), label: s.nama_sumber }))} 
+                      placeholder="Pilih Sumber" 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">TANGGAL INPUT</label>
+                    <input type="date" className="form-control" value={formTanggal} onChange={(e) => setFormTanggal(e.target.value)} required />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">NAMA / INSTANSI CLIENT</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Contoh: SMA 1 Surabaya / Bpk. Adi"
+                      value={formNamaClient} 
+                      onChange={(e) => setFormNamaClient(e.target.value)} 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">ASAL CLIENT (KOTA)</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Contoh: Sidoarjo"
+                      value={formAsalClient} 
+                      onChange={(e) => setFormAsalClient(e.target.value)} 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">NOMOR HP CLIENT</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Contoh: 08123456789"
+                      value={formNoHpClient} 
+                      onChange={(e) => setFormNoHpClient(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                </>
+              )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                 <button type="button" onClick={() => setIsLeadModalOpen(false)} className="btn btn-outline" style={{ flex: 1 }}>Batal</button>
@@ -1242,7 +1458,8 @@ export default function App() {
                     onChange={setNewUserRole} 
                     options={[
                       { value: 'karyawan', label: 'Karyawan' },
-                      { value: 'admin', label: 'Admin' }
+                      { value: 'admin', label: 'Admin' },
+                      { value: 'owner', label: 'Owner' }
                     ]} 
                     placeholder="Pilih Role" 
                   />

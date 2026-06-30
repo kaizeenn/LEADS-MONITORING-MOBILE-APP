@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(100) UNIQUE NOT NULL,
   nama_lengkap VARCHAR(100) NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'karyawan') NOT NULL DEFAULT 'karyawan',
+  role ENUM('admin', 'karyawan', 'owner') NOT NULL DEFAULT 'karyawan',
   bagian ENUM('marketing', 'tour') NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,6 +32,20 @@ CREATE TABLE IF NOT EXISTS leads (
   jumlah INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (wilayah_id) REFERENCES wilayah(id) ON DELETE RESTRICT,
+  FOREIGN KEY (sumber_id) REFERENCES sumber_leads(id) ON DELETE RESTRICT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS leads_tour (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  lokasi VARCHAR(255) NOT NULL,
+  sumber_id INT NOT NULL,
+  user_id INT NOT NULL,
+  tanggal DATE NOT NULL,
+  nama_client VARCHAR(255) NOT NULL,
+  asal_client VARCHAR(255) NOT NULL,
+  no_hp_client VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sumber_id) REFERENCES sumber_leads(id) ON DELETE RESTRICT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

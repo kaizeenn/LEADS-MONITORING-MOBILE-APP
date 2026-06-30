@@ -36,13 +36,15 @@ async function seedDatabase() {
         const adminPass = bcrypt.hashSync('admin123', 10);
         const empAPass = bcrypt.hashSync('karyawan123', 10);
         const empBPass = bcrypt.hashSync('karyawan123', 10);
+        const ownerPass = bcrypt.hashSync('owner123', 10);
 
         await connection.query(
           `INSERT INTO users (nama_lengkap, username, password, role, bagian) VALUES 
           ('Administrator', 'admin', ?, 'admin', NULL),
           ('Khairil Anwar PENS', 'anwar', ?, 'karyawan', 'marketing'),
-          ('Budi Santoso', 'budi', ?, 'karyawan', 'tour')`,
-          [adminPass, empAPass, empBPass]
+          ('Budi Santoso', 'budi', ?, 'karyawan', 'tour'),
+          ('Owner Group', 'owner', ?, 'owner', NULL)`,
+          [adminPass, empAPass, empBPass, ownerPass]
         );
         console.log('Database Seeding: Created initial users.');
       }
@@ -111,8 +113,8 @@ app.post('/api/auth/register', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userRole = role === 'admin' ? 'admin' : 'karyawan';
-    const userBagian = userRole === 'admin' ? null : (bagian || 'marketing');
+    const userRole = (role === 'admin' || role === 'owner') ? role : 'karyawan';
+    const userBagian = (userRole === 'admin' || userRole === 'owner') ? null : (bagian || 'marketing');
 
     await pool.query(
       'INSERT INTO users (nama_lengkap, username, password, role, bagian) VALUES (?, ?, ?, ?, ?)',
@@ -194,8 +196,8 @@ app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userRole = role === 'admin' ? 'admin' : 'karyawan';
-    const userBagian = userRole === 'admin' ? null : (bagian || 'marketing');
+    const userRole = (role === 'admin' || role === 'owner') ? role : 'karyawan';
+    const userBagian = (userRole === 'admin' || userRole === 'owner') ? null : (bagian || 'marketing');
 
     const [result] = await pool.query(
       'INSERT INTO users (nama_lengkap, username, password, role, bagian) VALUES (?, ?, ?, ?, ?)',
@@ -455,6 +457,256 @@ app.delete('/api/leads/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Data lead berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: 'Gagal menghapus data lead.' });
+  }
+});
+
+// --- LEADS TOUR ROUTES ---
+
+// Get all tour leads (with filters)
+app.get('/api/leads-tour', authenticateToken, async (req, res) => {
+  const { user_id, sumber_id, startDate, endDate, lokasi } = req.query;
+  
+  let query = `
+    SELECT lt.*, s.nama_sumber, u.nama_lengkap as nama_inputter
+    FROM leads_tour lt
+    JOIN sumber_leads s ON lt.sumber_id = s.id
+    JOIN users u ON lt.user_id = u.id
+    WHERE 1=1
+  `;
+  const queryParams = [];
+
+  // If role is karyawan, they can ONLY see their own tour leads
+  if (req.user.role === 'karyawan') {
+    query += ' AND lt.user_id = ? ';
+    queryParams.push(req.user.id);
+  } else if (user_id) {
+    query += ' AND lt.user_id = ? ';
+    queryParams.push(user_id);
+  }
+
+  if (sumber_id) {
+    query += ' AND lt.sumber_id = ? ';
+    queryParams.push(sumber_id);
+  }
+
+  if (startDate) {
+    query += ' AND lt.tanggal >= ? ';
+    queryParams.push(startDate);
+  }
+
+  if (endDate) {
+    query += ' AND lt.tanggal <= ? ';
+    queryParams.push(endDate);
+  }
+
+  if (lokasi) {
+    query += ' AND lt.lokasi LIKE ? ';
+    queryParams.push(`%${lokasi.trim()}%`);
+  }
+
+  query += ' ORDER BY lt.tanggal DESC, lt.id DESC ';
+
+  try {
+    const [rows] = await pool.query(query, queryParams);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal mengambil data leads tour.' });
+  }
+});
+
+// Create tour lead
+app.post('/api/leads-tour', authenticateToken, async (req, res) => {
+  const { lokasi, sumber_id, tanggal, nama_client, asal_client, no_hp_client } = req.body;
+  
+  if (!lokasi || !sumber_id || !tanggal || !nama_client || !asal_client || !no_hp_client) {
+    return res.status(400).json({ error: 'Semua kolom data leads tour wajib diisi.' });
+  }
+
+  const creatorId = req.user.id;
+
+  try {
+    const [result] = await pool.query(
+      'INSERT INTO leads_tour (lokasi, sumber_id, user_id, tanggal, nama_client, asal_client, no_hp_client) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [lokasi.trim(), sumber_id, creatorId, tanggal, nama_client.trim(), asal_client.trim(), no_hp_client.trim()]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      lokasi,
+      sumber_id,
+      user_id: creatorId,
+      tanggal,
+      nama_client,
+      asal_client,
+      no_hp_client
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal menambahkan data leads tour.' });
+  }
+});
+
+// Update tour lead
+app.put('/api/leads-tour/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { lokasi, sumber_id, tanggal, nama_client, asal_client, no_hp_client } = req.body;
+
+  if (!lokasi || !sumber_id || !tanggal || !nama_client || !asal_client || !no_hp_client) {
+    return res.status(400).json({ error: 'Semua kolom data leads tour wajib diisi.' });
+  }
+
+  try {
+    const [rows] = await pool.query('SELECT user_id FROM leads_tour WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Data lead tour tidak ditemukan.' });
+    }
+
+    if (req.user.role !== 'admin' && rows[0].user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Anda tidak memiliki hak untuk mengedit data lead tour orang lain.' });
+    }
+
+    await pool.query(
+      'UPDATE leads_tour SET lokasi = ?, sumber_id = ?, tanggal = ?, nama_client = ?, asal_client = ?, no_hp_client = ? WHERE id = ?',
+      [lokasi.trim(), sumber_id, tanggal, nama_client.trim(), asal_client.trim(), no_hp_client.trim(), id]
+    );
+
+    res.json({ message: 'Data lead tour berhasil diperbarui.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal memperbarui data lead tour.' });
+  }
+});
+
+// Delete tour lead
+app.delete('/api/leads-tour/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [rows] = await pool.query('SELECT user_id FROM leads_tour WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Data lead tour tidak ditemukan.' });
+    }
+
+    if (req.user.role !== 'admin' && rows[0].user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Anda tidak memiliki hak untuk menghapus data lead tour orang lain.' });
+    }
+
+    await pool.query('DELETE FROM leads_tour WHERE id = ?', [id]);
+    res.json({ message: 'Data lead tour berhasil dihapus.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal menghapus data lead tour.' });
+  }
+});
+
+// --- DASHBOARD TOUR / STATS ROUTES ---
+
+app.get('/api/dashboard-tour', authenticateToken, async (req, res) => {
+  const isKaryawan = req.user.role === 'karyawan';
+  const userId = req.user.id;
+
+  const userFilter = isKaryawan ? ' AND user_id = ? ' : ' AND 1=1 ';
+  const userParams = isKaryawan ? [userId] : [];
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const curMonth = today.substring(0, 7) + '%';
+    const curYear = today.substring(0, 4) + '%';
+
+    // 1. Totals
+    const [[{ todayTotal }]] = await pool.query(
+      `SELECT COUNT(*) as todayTotal FROM leads_tour WHERE tanggal = ? ${userFilter}`,
+      [today, ...userParams]
+    );
+
+    const [[{ monthTotal }]] = await pool.query(
+      `SELECT COUNT(*) as monthTotal FROM leads_tour WHERE tanggal LIKE ? ${userFilter}`,
+      [curMonth, ...userParams]
+    );
+
+    const [[{ yearTotal }]] = await pool.query(
+      `SELECT COUNT(*) as yearTotal FROM leads_tour WHERE tanggal LIKE ? ${userFilter}`,
+      [curYear, ...userParams]
+    );
+
+    // 2. Best Lokasi
+    const [lokasiBest] = await pool.query(
+      `SELECT lokasi as name, COUNT(*) as total
+       FROM leads_tour
+       WHERE 1=1 ${userFilter}
+       GROUP BY lokasi
+       ORDER BY total DESC LIMIT 1`,
+      userParams
+    );
+    const bestLokasi = lokasiBest.length > 0 ? lokasiBest[0].name : '-';
+
+    // 3. Best Sumber
+    const [sumberBest] = await pool.query(
+      `SELECT s.nama_sumber as name, COUNT(*) as total
+       FROM leads_tour lt
+       JOIN sumber_leads s ON lt.sumber_id = s.id
+       WHERE 1=1 ${userFilter}
+       GROUP BY lt.sumber_id
+       ORDER BY total DESC LIMIT 1`,
+      userParams
+    );
+    const bestSumber = sumberBest.length > 0 ? sumberBest[0].name : '-';
+
+    // 4. Daily Trend
+    const [dailyTrend] = await pool.query(
+      `SELECT tanggal as date, DATE_FORMAT(tanggal, '%d/%m') as label, COUNT(*) as total
+       FROM leads_tour
+       WHERE 1=1 ${userFilter}
+       GROUP BY tanggal
+       ORDER BY tanggal DESC LIMIT 7`,
+      userParams
+    );
+
+    // 5. Lokasi Breakdown (Top 5)
+    const [lokasiChart] = await pool.query(
+      `SELECT lokasi as nama_wilayah, COUNT(*) as total
+       FROM leads_tour
+       WHERE 1=1 ${userFilter}
+       GROUP BY lokasi
+       ORDER BY total DESC LIMIT 5`,
+      userParams
+    );
+
+    // 6. Sumber Breakdown (Top 5)
+    const [sumberChart] = await pool.query(
+      `SELECT s.nama_sumber, COUNT(*) as total
+       FROM leads_tour lt
+       JOIN sumber_leads s ON lt.sumber_id = s.id
+       WHERE 1=1 ${userFilter}
+       GROUP BY lt.sumber_id
+       ORDER BY total DESC LIMIT 5`,
+      userParams
+    );
+
+    // 7. Leaderboard (Admin / Owner Only)
+    let leaderboard = [];
+    if (req.user.role === 'admin' || req.user.role === 'owner') {
+      const [rows] = await pool.query(
+        `SELECT u.nama_lengkap as name, COUNT(lt.id) as total
+         FROM users u
+         LEFT JOIN leads_tour lt ON u.id = lt.user_id
+         WHERE u.role = 'karyawan' AND u.bagian = 'tour'
+         GROUP BY u.id
+         ORDER BY total DESC`
+      );
+      leaderboard = rows;
+    }
+
+    res.json({
+      todayTotal,
+      monthTotal,
+      yearTotal,
+      bestWilayah: bestLokasi,
+      bestSumber,
+      dailyTrend: dailyTrend.reverse(),
+      wilayahChart: lokasiChart,
+      sumberChart,
+      leaderboard
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal mengambil statistik dashboard tour.' });
   }
 });
 

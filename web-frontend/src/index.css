@@ -998,3 +998,35 @@ select.form-control:focus {
 }
 
 /* Redundant styles removed */
+
+/* Division Tab Switcher for Admin / Owner */
+.tabs-container {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tab-btn:hover {
+  border-color: #CBD5E1;
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+}
