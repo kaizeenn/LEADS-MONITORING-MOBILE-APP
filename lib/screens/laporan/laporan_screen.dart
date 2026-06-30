@@ -54,29 +54,16 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     super.dispose();
   }
 
-  Future<void> _selectStartDate(BuildContext context, LaporanProvider provider) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> _selectDateRange(BuildContext context, LaporanProvider provider) async {
+    final DateTimeRange? picked = await showDateRangePicker(
       context: context,
-      initialDate: provider.startDate,
+      initialDateRange: DateTimeRange(start: provider.startDate, end: provider.endDate),
       firstDate: DateTime(2020),
-      lastDate: provider.endDate,
-    );
-    if (picked != null) {
-      provider.setStartDate(picked);
-      final token = context.read<AuthProvider>().token ?? '';
-      provider.loadReport(token);
-    }
-  }
-
-  Future<void> _selectEndDate(BuildContext context, LaporanProvider provider) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: provider.endDate,
-      firstDate: provider.startDate,
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
-      provider.setEndDate(picked);
+      provider.setStartDate(picked.start);
+      provider.setEndDate(picked.end);
       final token = context.read<AuthProvider>().token ?? '';
       provider.loadReport(token);
     }
@@ -607,208 +594,180 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
       ),
       body: Column(
         children: [
-          // Filter Panel
-          Container(
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.015),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (showTabs) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: SegmentedButton<String>(
-                      segments: const <ButtonSegment<String>>[
-                        ButtonSegment<String>(
-                          value: 'marketing',
-                          label: Text('Marketing'),
-                          icon: Icon(Icons.campaign_rounded),
-                        ),
-                        ButtonSegment<String>(
-                          value: 'tour',
-                          label: Text('Tour'),
-                          icon: Icon(Icons.directions_bus_rounded),
-                        ),
-                      ],
-                      selected: <String>{laporanProvider.currentDivision},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        final token = authProvider.token ?? '';
-                        laporanProvider.setDivision(newSelection.first, token);
-                      },
-                    ),
+          // Collapsible Filter Panel
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: Container(
+              margin: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.015),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
                 ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _selectStartDate(context, laporanProvider),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.border),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'DARI TANGGAL',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    DateFormat('dd/MM/yy').format(laporanProvider.startDate),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.onBackground),
-                                  ),
-                                  const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: ExpansionTile(
+                  title: const Text(
+                    'Filter Pencarian',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                      color: AppColors.onBackground,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _selectEndDate(context, laporanProvider),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.border),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'SAMPAI TANGGAL',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    DateFormat('dd/MM/yy').format(laporanProvider.endDate),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.onBackground),
-                                  ),
-                                  const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
+                  ),
+                  leading: const Icon(Icons.filter_list_rounded, color: AppColors.primary, size: 20),
+                  initiallyExpanded: false,
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: laporanProvider.currentDivision == 'marketing'
-                          ? CustomDropdown<int?>(
-                              label: 'Wilayah',
-                              value: laporanProvider.wilayahId,
-                              hint: 'Semua Wilayah',
-                              items: [
-                                const DropdownMenuItem<int?>(
-                                  value: null,
-                                  child: Text('Semua Wilayah'),
-                                ),
-                                ...leadsProvider.wilayahList.map((w) {
-                                  return DropdownMenuItem<int?>(
-                                    value: w.id,
-                                    child: Text(w.namaWilayah),
-                                  );
-                                }),
-                              ],
-                              onChanged: (val) {
-                                laporanProvider.setWilayahId(val);
-                                final token = context.read<AuthProvider>().token ?? '';
-                                laporanProvider.loadReport(token);
-                              },
-                            )
-                          : CustomDropdown<String?>(
-                              label: 'Lokasi / Daerah',
-                              value: laporanProvider.lokasi,
-                              hint: 'Semua Lokasi',
-                              items: [
-                                const DropdownMenuItem<String?>(
-                                  value: null,
-                                  child: Text('Semua Lokasi'),
-                                ),
-                                ..._tourLocations.map((loc) {
-                                  return DropdownMenuItem<String?>(
-                                    value: loc,
-                                    child: Text(loc),
-                                  );
-                                }),
-                              ],
-                              onChanged: (val) {
-                                laporanProvider.setLokasi(val);
-                                final token = context.read<AuthProvider>().token ?? '';
-                                laporanProvider.loadReport(token);
-                              },
+                    if (showTabs) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SegmentedButton<String>(
+                          segments: const <ButtonSegment<String>>[
+                            ButtonSegment<String>(
+                              value: 'marketing',
+                              label: Text('Marketing'),
+                              icon: Icon(Icons.campaign_rounded, size: 16),
                             ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: CustomDropdown<int?>(
-                        label: 'Sumber Leads',
-                        value: laporanProvider.sumberId,
-                        hint: 'Semua Sumber',
-                        items: [
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('Semua Sumber'),
-                          ),
-                          ...leadsProvider.sumberLeadsList.map((s) {
-                            return DropdownMenuItem<int?>(
-                              value: s.id,
-                              child: Text(s.namaSumber),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          laporanProvider.setSumberId(val);
-                          final token = context.read<AuthProvider>().token ?? '';
-                          laporanProvider.loadReport(token);
-                        },
+                            ButtonSegment<String>(
+                              value: 'tour',
+                              label: Text('Tour'),
+                              icon: Icon(Icons.directions_bus_rounded, size: 16),
+                            ),
+                          ],
+                          selected: <String>{laporanProvider.currentDivision},
+                          onSelectionChanged: (Set<String> newSelection) {
+                            final token = authProvider.token ?? '';
+                            laporanProvider.setDivision(newSelection.first, token);
+                          },
+                        ),
                       ),
+                    ],
+                    InkWell(
+                      onTap: () => _selectDateRange(context, laporanProvider),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'PERIODE LAPORAN',
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${DateFormat('dd/MM/yy').format(laporanProvider.startDate)} - ${DateFormat('dd/MM/yy').format(laporanProvider.endDate)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.onBackground),
+                                ),
+                              ],
+                            ),
+                            const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: laporanProvider.currentDivision == 'marketing'
+                              ? CustomDropdown<int?>(
+                                  label: 'Wilayah',
+                                  value: laporanProvider.wilayahId,
+                                  hint: 'Semua Wilayah',
+                                  items: [
+                                    const DropdownMenuItem<int?>(
+                                      value: null,
+                                      child: Text('Semua Wilayah'),
+                                    ),
+                                    ...leadsProvider.wilayahList.map((w) {
+                                      return DropdownMenuItem<int?>(
+                                        value: w.id,
+                                        child: Text(w.namaWilayah),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (val) {
+                                    laporanProvider.setWilayahId(val);
+                                    final token = context.read<AuthProvider>().token ?? '';
+                                    laporanProvider.loadReport(token);
+                                  },
+                                )
+                              : CustomDropdown<String?>(
+                                  label: 'Lokasi / Daerah',
+                                  value: laporanProvider.lokasi,
+                                  hint: 'Semua Lokasi',
+                                  items: [
+                                    const DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text('Semua Lokasi'),
+                                    ),
+                                    ..._tourLocations.map((loc) {
+                                      return DropdownMenuItem<String?>(
+                                        value: loc,
+                                        child: Text(loc),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (val) {
+                                    laporanProvider.setLokasi(val);
+                                    final token = context.read<AuthProvider>().token ?? '';
+                                    laporanProvider.loadReport(token);
+                                  },
+                                ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: CustomDropdown<int?>(
+                            label: 'Sumber Leads',
+                            value: laporanProvider.sumberId,
+                            hint: 'Semua Sumber',
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('Semua Sumber'),
+                              ),
+                              ...leadsProvider.sumberLeadsList.map((s) {
+                                return DropdownMenuItem<int?>(
+                                  value: s.id,
+                                  child: Text(s.namaSumber),
+                                );
+                              }),
+                            ],
+                            onChanged: (val) {
+                              laporanProvider.setSumberId(val);
+                              final token = context.read<AuthProvider>().token ?? '';
+                              laporanProvider.loadReport(token);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -840,7 +799,7 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
             tabs: const [
-              Tab(icon: Icon(Icons.table_chart_rounded, size: 20), text: 'Data Tabel'),
+              Tab(icon: Icon(Icons.list_alt_rounded, size: 20), text: 'Data List'),
               Tab(icon: Icon(Icons.analytics_rounded, size: 20), text: 'Analisis Grafik'),
             ],
           ),
@@ -852,180 +811,71 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      // 1. Data Table Tab
+                      // 1. Data List Tab (Simplified Cards)
                       laporanProvider.filteredLeads.isEmpty
                           ? const EmptyState(subtitle: 'Ubah filter untuk memuat data leads.')
                           : Column(
                               children: [
-                                Container(
-                                  margin: const EdgeInsets.only(left: 12, right: 12, top: 12),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFF1F5F9), // slate-100
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(10),
-                                      topRight: Radius.circular(10),
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                                   child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      _buildSortHeader('Tanggal', laporanProvider, flex: 3),
-                                      _buildSortHeader(laporanProvider.currentDivision == 'marketing' ? 'Wilayah' : 'Lokasi', laporanProvider, flex: 3),
-                                      Expanded(
-                                        flex: 3,
-                                        child: Text(
-                                          laporanProvider.currentDivision == 'marketing' ? 'Sumber' : 'Client',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: AppColors.onBackground,
-                                          ),
+                                      Text(
+                                        'Menampilkan ${laporanProvider.filteredLeads.length} data',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textSecondary,
                                         ),
                                       ),
-                                      _buildSortHeader(laporanProvider.currentDivision == 'marketing' ? 'Jumlah' : 'No HP', laporanProvider, flex: 2),
-                                      if (!isOwner) const SizedBox(width: 70),
+                                      TextButton.icon(
+                                        onPressed: () => laporanProvider.sortData('Tanggal'),
+                                        icon: Icon(
+                                          laporanProvider.isAscending 
+                                              ? Icons.arrow_upward_rounded 
+                                              : Icons.arrow_downward_rounded,
+                                          size: 14,
+                                        ),
+                                        label: const Text(
+                                          'Urut Tanggal',
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 Expanded(
-                                  child: Container(
-                                    margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      border: Border.all(color: AppColors.border),
-                                      borderRadius: const BorderRadius.only(
-                                        bottomLeft: Radius.circular(10),
-                                        bottomRight: Radius.circular(10),
-                                      ),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.only(
-                                        bottomLeft: Radius.circular(10),
-                                        bottomRight: Radius.circular(10),
-                                      ),
-                                      child: ListView.builder(
-                                        itemCount: laporanProvider.filteredLeads.length,
-                                        padding: const EdgeInsets.only(bottom: 90),
-                                        itemBuilder: (ctx, index) {
-                                          final lead = laporanProvider.filteredLeads[index];
-                                          final isOdd = index % 2 == 1;
-
-                                          final String dateStr;
-                                          final String locName;
-                                          final String thirdCol;
-                                          final String fourthCol;
-
+                                  child: ListView.builder(
+                                    itemCount: laporanProvider.filteredLeads.length,
+                                    padding: const EdgeInsets.only(bottom: 90, top: 4),
+                                    itemBuilder: (ctx, index) {
+                                      final lead = laporanProvider.filteredLeads[index];
+                                      return _LeadListItem(
+                                        lead: lead,
+                                        division: laporanProvider.currentDivision,
+                                        isOwner: isOwner,
+                                        onEdit: () {
                                           if (laporanProvider.currentDivision == 'marketing') {
-                                            final l = lead as LeadsModel;
-                                            dateStr = DateFormat('dd/MM/yy').format(DateTime.parse(l.tanggal));
-                                            locName = l.namaWilayah ?? '-';
-                                            thirdCol = l.namaSumber ?? '-';
-                                            fourthCol = '${l.jumlah}';
+                                            _showEditDialog(context, lead as LeadsModel);
                                           } else {
-                                            final l = lead as LeadsTourModel;
-                                            dateStr = DateFormat('dd/MM/yy').format(DateTime.parse(l.tanggal));
-                                            locName = l.lokasi;
-                                            thirdCol = l.namaClient;
-                                            fourthCol = l.noHpClient;
+                                            _showEditTourDialog(context, lead as LeadsTourModel);
                                           }
-
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                                            decoration: BoxDecoration(
-                                              color: isOdd ? const Color(0xFFF8FAFC) : AppColors.surface,
-                                              border: const Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  flex: 3,
-                                                  child: Text(
-                                                    dateStr,
-                                                    style: const TextStyle(fontSize: 12.5, color: AppColors.onBackground),
-                                                  ),
-                                                ),
-                                                Expanded(
-                                                  flex: 3,
-                                                  child: Text(
-                                                    locName,
-                                                    style: const TextStyle(fontSize: 12.5, color: AppColors.onBackground, fontWeight: FontWeight.w500),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                Expanded(
-                                                  flex: 3,
-                                                  child: Text(
-                                                    thirdCol,
-                                                    style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                Expanded(
-                                                  flex: 2,
-                                                  child: Text(
-                                                    fourthCol,
-                                                    style: TextStyle(
-                                                      fontSize: 11.5,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: laporanProvider.currentDivision == 'marketing' ? AppColors.primary : AppColors.textSecondary,
-                                                    ),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                if (!isOwner)
-                                                  SizedBox(
-                                                    width: 70,
-                                                    child: Row(
-                                                      mainAxisAlignment: MainAxisAlignment.end,
-                                                      children: [
-                                                        InkWell(
-                                                          onTap: () {
-                                                            if (laporanProvider.currentDivision == 'marketing') {
-                                                              _showEditDialog(context, lead as LeadsModel);
-                                                            } else {
-                                                              _showEditTourDialog(context, lead as LeadsTourModel);
-                                                            }
-                                                          },
-                                                          borderRadius: BorderRadius.circular(14),
-                                                          child: Container(
-                                                            width: 28,
-                                                            height: 28,
-                                                            decoration: BoxDecoration(
-                                                              color: AppColors.primary.withOpacity(0.08),
-                                                              shape: BoxShape.circle,
-                                                            ),
-                                                            child: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primary),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(width: 8),
-                                                        InkWell(
-                                                          onTap: () {
-                                                            if (laporanProvider.currentDivision == 'marketing') {
-                                                              _showDeleteDialog(context, lead as LeadsModel);
-                                                            } else {
-                                                              _showDeleteTourDialog(context, lead as LeadsTourModel);
-                                                            }
-                                                          },
-                                                          borderRadius: BorderRadius.circular(14),
-                                                          child: Container(
-                                                            width: 28,
-                                                            height: 28,
-                                                            decoration: BoxDecoration(
-                                                              color: AppColors.danger.withOpacity(0.08),
-                                                              shape: BoxShape.circle,
-                                                            ),
-                                                            child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.danger),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          );
                                         },
-                                      ),
-                                    ),
+                                        onDelete: () {
+                                          if (laporanProvider.currentDivision == 'marketing') {
+                                            _showDeleteDialog(context, lead as LeadsModel);
+                                          } else {
+                                            _showDeleteTourDialog(context, lead as LeadsTourModel);
+                                          }
+                                        },
+                                      );
+                                    },
                                   ),
                                 ),
                               ],
@@ -1126,32 +976,189 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
       ),
     );
   }
+}
 
-  Widget _buildSortHeader(String label, LaporanProvider provider, {required int flex}) {
-    final isSorted = provider.sortColumn == label;
-    return Expanded(
-      flex: flex,
-      child: InkWell(
-        onTap: () => provider.sortData(label),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: AppColors.onBackground,
-              ),
-            ),
-            if (isSorted)
-              Icon(
-                provider.isAscending ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded,
-                size: 16,
-                color: AppColors.primary,
-              ),
-          ],
+class _LeadListItem extends StatelessWidget {
+  final dynamic lead;
+  final String division;
+  final bool isOwner;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _LeadListItem({
+    required this.lead,
+    required this.division,
+    required this.isOwner,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr = lead is LeadsModel
+        ? DateFormat('dd MMM yyyy').format(DateTime.parse(lead.tanggal))
+        : DateFormat('dd MMM yyyy').format(DateTime.parse((lead as LeadsTourModel).tanggal));
+
+    if (division == 'marketing') {
+      final l = lead as LeadsModel;
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border),
         ),
-      ),
-    );
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.namaWilayah ?? '-',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.onBackground),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sumber: ${l.namaSumber ?? "-"}  •  $dateStr',
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${l.jumlah} Leads',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.primary),
+                    ),
+                  ),
+                  if (!isOwner) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          onPressed: onEdit,
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.danger),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          onPressed: onDelete,
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      final l = lead as LeadsTourModel;
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      l.namaClient,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.onBackground),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      l.lokasi,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0D9488)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(Icons.campaign_rounded, size: 13, color: AppColors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    l.namaSumber ?? '-',
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.place_rounded, size: 13, color: AppColors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Asal: ${l.asalClient}',
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'No HP: ${l.noHpClient}  •  $dateStr',
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (!isOwner)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          onPressed: onEdit,
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.danger),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          onPressed: onDelete,
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
