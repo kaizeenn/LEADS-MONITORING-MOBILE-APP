@@ -11,7 +11,6 @@ import '../providers/leads_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/laporan_provider.dart';
 import 'add_data/add_data_screen.dart';
-import '../widgets/summary_card.dart';
 import '../widgets/chart_card.dart';
 import '../widgets/custom_dropdown.dart';
 import '../widgets/empty_state.dart';
@@ -79,60 +78,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       final token = context.read<AuthProvider>().token ?? '';
       provider.loadReport(token);
     }
-  }
-
-  // Calculate daily trend chart data from filtered leads
-  List<Map<String, dynamic>> _getDailyTrend(List<dynamic> leads, String division) {
-    final Map<String, int> groups = {};
-    for (final l in leads) {
-      final date = l is LeadsModel ? l.tanggal : (l as LeadsTourModel).tanggal;
-      final amount = l is LeadsModel ? l.jumlah : 1;
-      groups[date] = (groups[date] ?? 0) + amount;
-    }
-    final sortedKeys = groups.keys.toList()..sort();
-    return sortedKeys.map((k) {
-      final parts = k.split('-');
-      final label = parts.length > 2 ? '${parts[2]}/${parts[1]}' : k;
-      return {
-        'date': k,
-        'label': label,
-        'total': groups[k]!,
-      };
-    }).toList();
-  }
-
-  // Calculate Wilayah chart data from filtered leads
-  List<Map<String, dynamic>> _getWilayahChart(List<dynamic> leads, String division) {
-    final Map<String, int> groups = {};
-    for (final l in leads) {
-      final name = division == 'marketing' 
-          ? ((l as LeadsModel).namaWilayah ?? 'Lainnya') 
-          : (l as LeadsTourModel).lokasi;
-      final amount = division == 'marketing' ? (l as LeadsModel).jumlah : 1;
-      groups[name] = (groups[name] ?? 0) + amount;
-    }
-    final sortedEntries = groups.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return sortedEntries.map((e) => {
-      'nama_wilayah': e.key,
-      'total': e.value,
-    }).toList();
-  }
-
-  // Calculate Sumber chart data from filtered leads
-  List<Map<String, dynamic>> _getSumberChart(List<dynamic> leads, String division) {
-    final Map<String, int> groups = {};
-    for (final l in leads) {
-      final name = l is LeadsModel ? (l.namaSumber ?? 'Lainnya') : ((l as LeadsTourModel).namaSumber ?? 'Lainnya');
-      final amount = l is LeadsModel ? l.jumlah : 1;
-      groups[name] = (groups[name] ?? 0) + amount;
-    }
-    final sortedEntries = groups.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return sortedEntries.map((e) => {
-      'nama_sumber': e.key,
-      'total': e.value,
-    }).toList();
   }
 
   // Show Edit Dialog (Marketing)
@@ -537,43 +482,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
-  void _exportPdf(BuildContext context, LaporanProvider provider) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 12), Text('Mengekspor PDF...')])),
-    );
-    final path = await provider.exportPdf();
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    if (path != null) {
-      if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF disimpan di: $path'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 10),
-            action: SnackBarAction(
-              label: 'Buka',
-              textColor: Colors.white,
-              onPressed: () => _openFile(path),
-            ),
-          ),
-        );
-      } else {
-        try {
-          await Share.shareXFiles([XFile(path)], text: 'Laporan Leads Monitoring PDF');
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('PDF disimpan di: $path'), backgroundColor: AppColors.success),
-          );
-        }
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengekspor PDF'), backgroundColor: AppColors.danger),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -608,11 +516,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: const Icon(Icons.grid_on_rounded),
             tooltip: 'Export Excel',
             onPressed: laporanProvider.filteredLeads.isEmpty ? null : () => _exportExcel(context, laporanProvider),
-          ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_rounded),
-            tooltip: 'Export PDF',
-            onPressed: laporanProvider.filteredLeads.isEmpty ? null : () => _exportPdf(context, laporanProvider),
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: AppColors.danger),
