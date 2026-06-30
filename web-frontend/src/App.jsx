@@ -695,17 +695,17 @@ export default function App() {
 
       {/* Admin Menu / Navigation Tab Bar */}
       {user.role === 'admin' && (
-        <div style={{ background: '#ffffff', borderBottom: '1px solid var(--border)', padding: '10px 40px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.8px', marginRight: '8px', textTransform: 'uppercase' }}>PANEL ADMIN:</span>
-          <button onClick={() => setIsUserModalOpen(true)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="admin-bar">
+          <span className="admin-bar-label">PANEL ADMIN:</span>
+          <button onClick={() => setIsUserModalOpen(true)} className="admin-btn">
             <Users size={14} className="text-muted" />
             <span>Kelola User</span>
           </button>
-          <button onClick={() => setIsWilayahModalOpen(true)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <button onClick={() => setIsWilayahModalOpen(true)} className="admin-btn">
             <MapPin size={14} className="text-muted" />
             <span>Kelola Wilayah</span>
           </button>
-          <button onClick={() => setIsSumberModalOpen(true)} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <button onClick={() => setIsSumberModalOpen(true)} className="admin-btn">
             <Share2 size={14} className="text-muted" />
             <span>Kelola Sumber</span>
           </button>
