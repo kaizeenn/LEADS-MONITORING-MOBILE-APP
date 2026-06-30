@@ -451,38 +451,45 @@ select.form-control:focus {
   min-width: 180px;
 }
 
-.filter-bar input {
-  background: #F8FAFC;
-  border: 1px solid var(--border);
-  font-size: 13px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+/* Uniform Filter Bar Fields (Inputs, Dropdown Triggers, Button) */
+.filter-bar input.form-control,
+.filter-bar .custom-select-trigger,
+.filter-bar .btn {
+  height: 38px !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-sm) !important;
+  box-sizing: border-box !important;
 }
 
-.filter-bar select {
+.filter-bar input.form-control {
   background: #F8FAFC;
   border: 1px solid var(--border);
-  font-size: 13px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 14px;
-  padding-right: 36px;
-  cursor: pointer;
+  padding: 0 12px;
+  width: 100%;
 }
 
-.filter-bar select:focus, .filter-bar input:focus {
+.filter-bar input.form-control:focus {
   background-color: var(--surface);
   border-color: var(--primary);
+  outline: none;
 }
 
-.filter-bar select:focus {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234F46E5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+.filter-bar .custom-select-trigger {
+  background: #F8FAFC;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+}
+
+.filter-bar .custom-select-trigger.open {
+  background: var(--surface);
+}
+
+.filter-bar .btn {
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 /* Stat Cards Grid */
@@ -990,14 +997,4 @@ select.form-control:focus {
   font-weight: 600;
 }
 
-/* For Filter Bar Specifically */
-.filter-bar .custom-select-trigger {
-  background: #F8FAFC;
-  padding: 8px 12px;
-  font-size: 13px;
-  border-radius: var(--radius-sm);
-}
-
-.filter-bar .custom-select-trigger.open {
-  background: var(--surface);
-}
+/* Redundant styles removed */
