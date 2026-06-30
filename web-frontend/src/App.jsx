@@ -881,8 +881,33 @@ export default function App() {
           </section>
         )}
 
-        {/* Dashboard grid panel */}
-        <div className="dashboard-grid">
+        {/* Row 2: Charts Row */}
+        {dashboardStats && (
+          <section className="charts-grid">
+            <div className="panel">
+              <h2 className="panel-title" style={{ marginBottom: '16px' }}>
+                <TrendingUp size={18} />
+                <span>Trend Leads Harian</span>
+              </h2>
+              <div className="chart-container">
+                {renderLineChart()}
+              </div>
+            </div>
+
+            <div className="panel">
+              <h2 className="panel-title" style={{ marginBottom: '16px' }}>
+                <MapPin size={18} />
+                <span>Wilayah Teraktif (Top 5)</span>
+              </h2>
+              <div className="chart-container">
+                {renderBarChart()}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Row 3: Data Table & Leaderboard Row */}
+        <div className="data-grid">
           {/* Main Table Column */}
           <div className="panel">
             <div className="panel-header">
@@ -895,7 +920,7 @@ export default function App() {
                   <Plus size={16} />
                   <span>Input Leads</span>
                 </button>
-                <button onClick={exportToExcel} className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '13.5px', borderColor: '#10B981', color: '#10B981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button onClick={exportToExcel} className="btn btn-export-excel" style={{ padding: '8px 16px', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <FileSpreadsheet size={16} />
                   <span>Export Excel</span>
                 </button>
@@ -958,61 +983,37 @@ export default function App() {
             )}
           </div>
 
-          {/* Sidebar Charts/Leaderboard Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Visualisations Panel */}
+          {/* Leaderboard Panel (Admin Only) */}
+          {user.role === 'admin' && dashboardStats && dashboardStats.leaderboard && (
             <div className="panel">
               <h2 className="panel-title" style={{ marginBottom: '16px' }}>
-                <TrendingUp size={18} />
-                <span>Trend Leads Harian</span>
+                <Users size={18} />
+                <span>Leaderboard Input Karyawan</span>
               </h2>
-              <div className="chart-container">
-                {renderLineChart()}
-              </div>
-            </div>
-
-            <div className="panel">
-              <h2 className="panel-title" style={{ marginBottom: '16px' }}>
-                <MapPin size={18} />
-                <span>Wilayah Teraktif (Top 5)</span>
-              </h2>
-              <div className="chart-container">
-                {renderBarChart()}
-              </div>
-            </div>
-
-            {/* Leaderboard Panel (Admin Only) */}
-            {user.role === 'admin' && dashboardStats && dashboardStats.leaderboard && (
-              <div className="panel">
-                <h2 className="panel-title" style={{ marginBottom: '16px' }}>
-                  <Users size={18} />
-                  <span>Leaderboard Input Karyawan</span>
-                </h2>
-                <div className="leaderboard-list">
-                  {dashboardStats.leaderboard.length === 0 ? (
-                    <p className="text-muted text-center py-4" style={{ fontSize: '13px' }}>Belum ada data input karyawan.</p>
-                  ) : (
-                    dashboardStats.leaderboard.map((item, idx) => (
-                      <div key={idx} className="leaderboard-item">
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span className={`leaderboard-rank rank-${idx + 1}`}>{idx + 1}</span>
-                          <div className="leaderboard-info">
-                            <h4 className="leaderboard-name">{item.name}</h4>
-                          </div>
+              <div className="leaderboard-list">
+                {dashboardStats.leaderboard.length === 0 ? (
+                  <p className="text-muted text-center py-4" style={{ fontSize: '13px' }}>Belum ada data input karyawan.</p>
+                ) : (
+                  dashboardStats.leaderboard.map((item, idx) => (
+                    <div key={idx} className="leaderboard-item">
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span className={`leaderboard-rank rank-${idx + 1}`}>{idx + 1}</span>
+                        <div className="leaderboard-info">
+                          <h4 className="leaderboard-name">{item.name}</h4>
                         </div>
-                        <span className="leaderboard-score">{item.total} Leads</span>
                       </div>
-                    ))
-                  )}
-                </div>
+                      <span className="leaderboard-score">{item.total} Leads</span>
+                    </div>
+                  ))
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
 
       {/* FOOTER WATERMARK */}
-      <footer style={{ background: '#ffffff', borderTop: '1px solid var(--border)', padding: '16px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+      <footer className="footer">
         <p>Leads Monitoring App v1.0.0 &bull; <strong>Khairil Anwar PENS Sumenep</strong></p>
       </footer>
 
