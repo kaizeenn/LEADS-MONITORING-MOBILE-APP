@@ -670,7 +670,7 @@ export default function App() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <img src="/Logo Happy Group.png" alt="Happy Group Logo" style={{ height: '52px', marginBottom: '14px', objectFit: 'contain' }} />
+            <img src="/Icon Apps.png" alt="Apps Icon" style={{ height: '64px', marginBottom: '14px', objectFit: 'contain' }} />
             <h1 className="auth-title">Rekap Leads</h1>
             <p className="auth-subtitle">Masuk untuk mengelola data leads pariwisata</p>
           </div>
@@ -728,7 +728,7 @@ export default function App() {
       {/* Header */}
       <header className="header">
         <div className="brand-wrapper" style={{ gap: '14px' }}>
-          <img src="/Logo Happy Group.png" alt="Happy Group Logo" style={{ height: '36px', objectFit: 'contain' }} />
+          <img src="/Icon Apps.png" alt="Apps Icon" style={{ height: '36px', objectFit: 'contain' }} />
           <div>
             <h1 className="brand-title">Rekap Leads</h1>
             <p className="brand-subtitle">WEB PORTAL MONITORING</p>
