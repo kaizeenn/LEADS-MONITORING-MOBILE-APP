@@ -887,12 +887,22 @@ export default function App() {
           ) : (
             <div className="filter-item">
               <label className="form-label" style={{ marginBottom: '6px' }}>LOKASI / DAERAH</label>
-              <input 
-                type="text" 
-                className="form-control" 
-                placeholder="Cari lokasi..." 
+              <CustomSelect 
                 value={filterLokasi} 
-                onChange={(e) => setFilterLokasi(e.target.value)} 
+                onChange={setFilterLokasi} 
+                options={[
+                  { value: '', label: 'Semua Lokasi' },
+                  { value: 'Bogor', label: 'Bogor' },
+                  { value: 'Bandung', label: 'Bandung' },
+                  { value: 'Jogja', label: 'Jogja' },
+                  { value: 'Malang', label: 'Malang' },
+                  { value: 'Bromo', label: 'Bromo' },
+                  { value: 'Banyuwangi', label: 'Banyuwangi' },
+                  { value: 'Bali', label: 'Bali' },
+                  { value: 'Lombok', label: 'Lombok' },
+                  { value: 'Labuan Bajo', label: 'Labuan Bajo' }
+                ]} 
+                placeholder="Semua Lokasi" 
               />
             </div>
           )}
@@ -1227,13 +1237,21 @@ export default function App() {
                 <>
                   <div className="form-group">
                     <label className="form-label">LOKASI / DAERAH TUJUAN</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      placeholder="Contoh: Jogja, Bali, Malang"
+                    <CustomSelect 
                       value={formLokasi} 
-                      onChange={(e) => setFormLokasi(e.target.value)} 
-                      required 
+                      onChange={setFormLokasi} 
+                      options={[
+                        { value: 'Bogor', label: 'Bogor' },
+                        { value: 'Bandung', label: 'Bandung' },
+                        { value: 'Jogja', label: 'Jogja' },
+                        { value: 'Malang', label: 'Malang' },
+                        { value: 'Bromo', label: 'Bromo' },
+                        { value: 'Banyuwangi', label: 'Banyuwangi' },
+                        { value: 'Bali', label: 'Bali' },
+                        { value: 'Lombok', label: 'Lombok' },
+                        { value: 'Labuan Bajo', label: 'Labuan Bajo' }
+                      ]} 
+                      placeholder="Pilih Lokasi" 
                     />
                   </div>
 
