@@ -670,10 +670,8 @@ export default function App() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <div className="auth-logo">
-              <Bus size={28} />
-            </div>
-            <h1 className="auth-title">Leads Monitoring</h1>
+            <img src="/Logo Happy Group.png" alt="Happy Group Logo" style={{ height: '52px', marginBottom: '14px', objectFit: 'contain' }} />
+            <h1 className="auth-title">Rekap Leads</h1>
             <p className="auth-subtitle">Masuk untuk mengelola data leads pariwisata</p>
           </div>
 
@@ -729,12 +727,10 @@ export default function App() {
     <div className="dashboard-wrapper">
       {/* Header */}
       <header className="header">
-        <div className="brand-wrapper">
-          <div className="brand-logo">
-            <Bus size={22} />
-          </div>
+        <div className="brand-wrapper" style={{ gap: '14px' }}>
+          <img src="/Logo Happy Group.png" alt="Happy Group Logo" style={{ height: '36px', objectFit: 'contain' }} />
           <div>
-            <h1 className="brand-title">Leads Pariwisata</h1>
+            <h1 className="brand-title">Rekap Leads</h1>
             <p className="brand-subtitle">WEB PORTAL MONITORING</p>
           </div>
         </div>
