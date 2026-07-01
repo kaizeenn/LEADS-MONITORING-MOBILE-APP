@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://202.10.41.37:18791/api';
 
 // Beautiful Custom React Dropdown Component
 function CustomSelect({ value, onChange, options, placeholder }) {

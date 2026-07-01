@@ -1,745 +1,241 @@
-# LEADS MONITORING MOBILE APP
+# 🚀 PANDUAN MUDAH: DEPLOY APLIKASI LEADS MONITORING KE VPS BARU
 
-## Project Information
-
-### Project Name
-
-Leads Monitoring App
-
-### Project Type
-
-Mobile Application
-
-### Platform
-
-* Android (Primary)
-* iOS (Optional)
-
-### Framework
-
-Flutter Stable
-
-### Language
-
-Dart
-
-### Local Database
-
-SQLite (sqflite)
-
-### State Management
-
-Provider
-
-### Architecture
-
-Feature First + Service Layer
-
-### Connectivity
-
-Offline First
-
-Aplikasi harus dapat digunakan tanpa internet.
-
-Semua data disimpan secara lokal menggunakan SQLite.
-
-Tidak menggunakan backend.
-
-Tidak menggunakan Firebase.
-
-Tidak menggunakan Hive.
-
-Tidak menggunakan ObjectBox.
+Panduan ini dibuat khusus untuk memudahkan proses pemindahan aplikasi **Leads Monitoring** dari komputer lokal (laptop) ke **VPS Baru** agar bisa diakses oleh semua orang lewat internet.
 
 ---
 
-# Business Background
-
-Perusahaan bus pariwisata memiliki tim marketing yang bertugas mencari calon pelanggan (leads).
-
-Saat ini pencatatan leads masih dilakukan secara manual menggunakan spreadsheet.
-
-Tujuan aplikasi adalah:
-
-* Memudahkan input leads harian
-* Mengelompokkan leads berdasarkan wilayah
-* Mengelompokkan leads berdasarkan sumber leads
-* Menyediakan laporan
-* Menyediakan grafik performa
-* Menyediakan backup dan restore data
+## 🛠️ Persiapan Awal
+Sebelum memulai, pastikan Anda memiliki:
+1.  **Detail VPS Baru**: Alamat IP (contoh: `202.10.41.37`) dan Password Administrator (`root`).
+2.  **Aplikasi Pendukung di Laptop**:
+    *   Aplikasi transfer file: Unduh dan instal **[FileZilla Client](https://filezilla-project.org/)** (gratis) untuk mengirim file ke server dengan mudah.
+    *   Aplikasi Terminal: Command Prompt/PowerShell (Windows), atau Terminal (Mac/Linux).
 
 ---
 
-# User Role
+## 📁 STRUKTUR FILE: Apa yang Dikirim ke Server?
 
-Saat ini hanya ada 1 role:
+Tidak semua file di laptop Anda harus dikirim ke server. Aplikasi ini dibagi menjadi dua bagian:
 
-## Marketing
+### ❌ JANGAN Dikirim ke Server (Biarkan di Laptop)
+Folder aplikasi HP (Flutter) tidak perlu diunggah karena server tidak bisa menjalankan aplikasi HP. Folder yang harus diabaikan adalah:
+*   `android/`, `ios/`, `lib/`, `test/`, `web/`, `windows/`, `macos/`, `linux/`
+*   `build/` (ukuran file sangat besar, cukup hapus atau abaikan)
+*   `.dart_tool/`, `.idea/`, `.metadata`
+*   `pubspec.yaml`, `pubspec.lock`
 
-Hak akses:
-
-* Input leads
-* Melihat dashboard
-* Melihat laporan
-* Export data
-* Backup data
-* Restore data
-
-Tidak ada login.
-
-Tidak ada autentikasi.
+### ✅ HARUS Dikirim ke Server (VPS)
+Hanya dua folder ini saja yang akan kita jalankan di server:
+1.  Folder **`backend/`** (kecuali folder `node_modules` di dalamnya karena ukurannya besar, nanti akan kita instal langsung di server).
+2.  Folder **`web-frontend/dist/`** (hasil file web jadi setelah dikompilasi).
 
 ---
 
-# Application Navigation
+## ⚙️ LANGKAH 1: Persiapan di Laptop Lokal
 
-Bottom Navigation Bar
+### A. Sambungkan Alamat Web ke Server Baru
+1. Buka folder utama proyek Anda di laptop, lalu masuk ke folder `web-frontend/src/`.
+2. Buka file bernama `App.jsx` menggunakan editor teks (Notepad, VS Code, dll).
+3. Cari baris **27** yang tertulis:
+   `const API_URL = 'http://localhost:3000/api';`
+4. Ubah `localhost:3000` menjadi **Alamat IP VPS Baru** Anda dengan port **`18791`**.
+   *Contoh jika IP VPS Anda adalah `202.10.41.37`:*
+   ```javascript
+   const API_URL = 'http://202.10.41.37:18791/api';
+   ```
 
-1. Home
-2. Add Data
-3. Laporan
-4. Pengaturan
+### B. Kompilasi Halaman Web
+1. Buka Terminal/Command Prompt di laptop Anda.
+2. Arahkan terminal masuk ke dalam folder `web-frontend` proyek Anda:
+   ```bash
+   # Masuk ke folder web-frontend proyek Anda
+   cd [JALUR_FOLDER_PROYEK_ANDA]/web-frontend
+   ```
+   *(Tips: Anda juga bisa membuka folder `web-frontend` di File Explorer, klik kanan, lalu pilih "Open in Terminal" atau "Buka di Terminal")*
+3. Jalankan perintah ini untuk merakit halaman web:
+   ```bash
+   npm install
+   npm run build
+   ```
+4. Setelah selesai, Anda akan melihat folder baru bernama `dist` muncul di dalam folder `web-frontend`.
 
----
+### C. Sambungkan Halaman Web ke Backend
+Agar Anda tidak perlu menyewa domain/port tambahan untuk web, kita akan menyatukan halaman web ke dalam backend.
+1. Buka folder `backend/` di laptop Anda.
+2. Buka file `app.js`.
+3. Cari bagian paling bawah (sebelum baris `module.exports = app;`).
+4. Salin dan tempel kode berikut tepat di atasnya:
+   ```javascript
+   // ===== Mengarahkan server untuk membaca halaman web dashboard =====
+   const path = require('path');
+   const frontendDistPath = path.join(__dirname, '../web-frontend/dist');
+   app.use(express.static(frontendDistPath));
 
-# SCREEN 1 : HOME
-
-## Purpose
-
-Menampilkan ringkasan performa leads.
-
----
-
-## Dashboard Cards
-
-### Total Leads Hari Ini
-
-Query:
-
-SUM(jumlah)
-
-berdasarkan tanggal hari ini.
-
----
-
-### Total Leads Bulan Ini
-
-Query:
-
-SUM(jumlah)
-
-berdasarkan bulan berjalan.
-
----
-
-### Total Leads Tahun Ini
-
-Query:
-
-SUM(jumlah)
-
-berdasarkan tahun berjalan.
-
----
-
-### Wilayah Terbaik
-
-Wilayah dengan jumlah leads terbesar.
+   app.get('*', (req, res, next) => {
+     if (req.path.startsWith('/api')) {
+       return next();
+     }
+     res.sendFile(path.join(frontendDistPath, 'index.html'));
+   });
+   ```
 
 ---
 
-### Sumber Leads Terbaik
+## 📤 LANGKAH 2: Mengirim File ke Server (VPS)
 
-Sumber leads dengan jumlah leads terbesar.
+Kita akan menggunakan aplikasi **FileZilla** agar proses pengiriman file semudah *drag-and-drop*:
 
----
-
-# Grafik 1
-
-## Trend Leads Harian
-
-Jenis:
-
-Line Chart
-
-Data:
-
-7 hari terakhir.
-
----
-
-# Grafik 2
-
-## Leads Berdasarkan Wilayah
-
-Jenis:
-
-Bar Chart
-
-Data:
-
-Top wilayah berdasarkan jumlah leads.
+1. Buka aplikasi **FileZilla** di laptop Anda.
+2. Isi kolom koneksi di bagian atas:
+   *   **Host**: `sftp://<MASUKKAN_IP_VPS_ANDA>` (contoh: `sftp://202.10.41.37`)
+   *   **Username**: `root`
+   *   **Password**: `<PASSWORD_VPS_ANDA>`
+   *   **Port**: `22` (atau kosongkan)
+3. Klik **Quickconnect**. Jika ada peringatan keamanan, klik **OK**.
+4. Di panel sebelah kanan (Server VPS), masuk ke folder `/var/www/`. Jika folder `www` belum ada, klik kanan lalu pilih **Create directory** dengan nama `www`.
+5. Di dalam `/var/www/`, buat folder baru bernama `leads-monitoring`.
+6. Di dalam `/var/www/leads-monitoring/`, buat dua folder baru:
+   *   `backend`
+   *   `web-frontend` (di dalam `web-frontend`, buat lagi folder `dist`)
+7. Di panel sebelah kiri (Laptop Anda), cari lokasi file proyek Anda.
+8. **Kirim file**:
+   *   Seret (*drag*) semua file dari folder **`backend`** laptop Anda (KECUALI folder `node_modules` dan file `.env`) dan lepaskan (*drop*) ke folder `/var/www/leads-monitoring/backend/` di server.
+   *   Seret isi dari folder **`web-frontend/dist`** laptop Anda dan masukkan ke folder `/var/www/leads-monitoring/web-frontend/dist/` di server.
 
 ---
 
-# Grafik 3
+## 🖥️ LANGKAH 3: Setting Server (Tinggal Copy-Paste)
 
-## Leads Berdasarkan Sumber
+Buka aplikasi **Terminal** (Mac/Linux) atau **Command Prompt/PuTTY** (Windows), lalu hubungkan ke server Anda:
+```bash
+ssh root@<IP_VPS_BARU>
+```
 
-Jenis:
+Salin dan tempel perintah-perintah di bawah ini ke dalam terminal server satu per satu:
 
-Pie Chart
+### A. Instalasi Node.js, PM2 (Penjaga Server), dan Database MySQL
+```bash
+# 1. Update sistem server
+apt update && apt upgrade -y
 
-Data:
+# 2. Instal Node.js (mesin server javascript)
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
 
-Persentase sumber leads.
+# 3. Instal PM2 agar backend tetap berjalan saat terminal ditutup
+npm install -g pm2
 
----
+# 4. Instal database MySQL
+apt install -y mysql-server
+```
 
-# SCREEN 2 : ADD DATA
+### B. Membuat Database Baru
+Jalankan perintah ini untuk masuk ke database server:
+```bash
+sudo mysql
+```
+Salin blok perintah SQL di bawah ini, tempel ke dalam MySQL, lalu tekan Enter:
+```sql
+-- Membuat database baru
+CREATE DATABASE IF NOT EXISTS leads_monitoring CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-## Purpose
+-- Membuat user database baru dengan nama 'esurat' dan password 'esurat2025!'
+CREATE USER IF NOT EXISTS 'esurat'@'localhost' IDENTIFIED BY 'esurat2025!';
+GRANT ALL PRIVILEGES ON leads_monitoring.* TO 'esurat'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
 
-Input data leads harian.
+Setelah keluar dari MySQL, jalankan perintah ini untuk membuat tabel otomatis:
+```bash
+mysql -u esurat -pesurat2025! leads_monitoring < /var/www/leads-monitoring/backend/schema.sql
+```
 
----
+### C. Menulis File Konfigurasi (.env) di Server
+Buat file konfigurasi rahasia di server menggunakan editor teks nano:
+```bash
+nano /var/www/leads-monitoring/backend/.env
+```
+Salin teks di bawah ini dan tempelkan ke dalam editor tersebut:
+```env
+PORT=18791
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=esurat
+DB_PASSWORD=esurat2025!
+DB_NAME=leads_monitoring
+JWT_SECRET=leads_monitoring_secret_key_12345
+```
+*Cara menyimpan: Tekan `Ctrl + O` lalu Enter. Cara keluar: Tekan `Ctrl + X`.*
 
-## Form
+### D. Menyalakan Aplikasi Secara Permanen
+```bash
+# Masuk ke folder backend di server
+cd /var/www/leads-monitoring/backend
 
-### Wilayah
+# Instal modul pendukung
+npm install --omit=dev
 
-Dropdown
+# Jalankan server
+pm2 start server.js --name "leads-monitoring"
 
-Data berasal dari tabel wilayah.
+# Simpan agar otomatis menyala saat server restart
+pm2 save
+pm2 startup
+```
+*(Jika muncul perintah tambahan dari `pm2 startup` di layar, salin dan jalankan perintah tersebut).*
 
----
-
-### Tanggal
-
-Date Picker
-
-Default:
-
-Today
-
----
-
-### Sumber Leads
-
-Dropdown
-
-Data berasal dari tabel sumber_leads.
-
----
-
-### Jumlah Leads
-
-Input Number
-
-Validation:
-
-* wajib diisi
-* hanya angka
-* minimal 0
-
----
-
-## Action
-
-### Simpan
-
-Saat berhasil:
-
-* insert ke database
-* tampil snackbar sukses
-* reset form
-
----
-
-# SCREEN 3 : LAPORAN
-
-## Purpose
-
-Melihat data leads.
-
----
-
-## Filter Section
-
-### Tanggal Awal
-
-Date Picker
-
-### Tanggal Akhir
-
-Date Picker
-
-### Wilayah
-
-Dropdown
-
-Default:
-
-Semua Wilayah
-
-### Sumber Leads
-
-Dropdown
-
-Default:
-
-Semua Sumber
+### E. Membuka Pintu Akses (Firewall)
+Jalankan perintah ini agar orang luar bisa membuka halaman web dan aplikasi Anda:
+```bash
+iptables -I INPUT -p tcp --dport 18791 -j ACCEPT
+```
 
 ---
 
-## Statistik
+## 📱 LANGKAH 4: Konfigurasi Aplikasi HP (Flutter) di Laptop
 
-Tampilkan:
+Sekarang, kembali ke laptop Anda untuk menyambungkan aplikasi HP Anda ke server baru.
 
-* Total Leads
-* Rata-rata Leads
-* Total Hari Aktif
-* Wilayah Terbaik
-* Sumber Terbaik
+### A. Ubah IP Server di Aplikasi HP
+Buka folder proyek aplikasi Flutter Anda di laptop, cari 3 file berikut, lalu ubah alamat IP-nya menjadi IP VPS Baru Anda:
 
----
+1.  **`lib/services/report_service.dart`** (Baris 7):
+    ```dart
+    static const String apiBaseUrl = 'http://<IP_VPS_BARU>:18791/api';
+    ```
+2.  **`lib/providers/leads_provider.dart`** (Baris 12):
+    ```dart
+    static const String apiBaseUrl = 'http://<IP_VPS_BARU>:18791/api';
+    ```
+3.  **`lib/providers/auth_provider.dart`** (Baris 7):
+    ```dart
+    static const String apiBaseUrl = 'http://<IP_VPS_BARU>:18791/api';
+    ```
 
-## Data Table
+### B. Membuat File APK Jadi
+1. Buka terminal/Command Prompt di laptop Anda.
+2. Masuk ke folder utama proyek Anda:
+   ```bash
+   cd [JALUR_FOLDER_PROYEK_ANDA]
+   ```
+3. Jalankan perintah kompilasi:
+   ```bash
+   flutter pub get
+   flutter build apk --release
+   ```
 
-Kolom:
+### C. Memasang di HP Anda
+File APK siap instal telah dibuat. Anda bisa mengambilnya di folder:
+`build/app/outputs/flutter-apk/app-release.apk`
 
-* Tanggal
-* Wilayah
-* Sumber Leads
-* Jumlah Leads
-
-Sorting:
-
-* Tanggal
-* Wilayah
-* Jumlah
-
----
-
-## Grafik
-
-### Leads Harian
-
-Line Chart
-
-### Leads Wilayah
-
-Bar Chart
-
-### Leads Sumber
-
-Pie Chart
+Kirim file tersebut ke HP Android Anda lewat WhatsApp, Google Drive, atau kabel USB, lalu instal seperti biasa.
 
 ---
 
-# Export Excel
-
-Format:
-
-.xlsx
-
-Nama File:
-
-Leads_Report_YYYYMMDD.xlsx
-
-Sheet 1:
-
-Summary
-
-Sheet 2:
-
-Detail Leads
-
----
-
-# Export PDF
-
-Format:
-
-.pdf
-
-Nama File:
-
-Leads_Report_YYYYMMDD.pdf
-
-Isi:
-
-* Judul Laporan
-* Periode
-* Statistik
-* Grafik
-* Tabel
-
----
-
-# SCREEN 4 : PENGATURAN
-
----
-
-# Backup Data
-
-## Tujuan
-
-Menyimpan seluruh database ke file JSON.
-
----
-
-## Nama File
-
-backup_leads_YYYYMMDD_HHMMSS.json
-
----
-
-## Struktur JSON
-
-{
-"version": "1.0",
-"backup_date": "",
-"wilayah": [],
-"sumber_leads": [],
-"leads": []
-}
-
----
-
-## Action
-
-* Generate JSON
-* Simpan ke storage
-* Share file
-
----
-
-# Restore Data
-
-## Flow
-
-1. Pilih file JSON
-2. Validasi format
-3. Tampilkan preview
-4. Konfirmasi restore
-5. Hapus data lama
-6. Import data baru
-
----
-
-## Validation
-
-Pastikan field:
-
-* wilayah
-* sumber_leads
-* leads
-
-tersedia.
-
-Jika tidak valid:
-
-Tampilkan error.
-
----
-
-# Share Backup
-
-Gunakan:
-
-share_plus
-
-Dapat dibagikan ke:
-
-* WhatsApp
-* Telegram
-* Gmail
-* Google Drive
-
----
-
-# DATABASE DESIGN
-
-## Table wilayah
-
-CREATE TABLE wilayah (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-nama_wilayah TEXT NOT NULL
-);
-
----
-
-## Table sumber_leads
-
-CREATE TABLE sumber_leads (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-nama_sumber TEXT NOT NULL
-);
-
----
-
-## Table leads
-
-CREATE TABLE leads (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-wilayah_id INTEGER NOT NULL,
-sumber_id INTEGER NOT NULL,
-tanggal TEXT NOT NULL,
-jumlah INTEGER NOT NULL,
-created_at TEXT NOT NULL,
-updated_at TEXT,
-FOREIGN KEY(wilayah_id) REFERENCES wilayah(id),
-FOREIGN KEY(sumber_id) REFERENCES sumber_leads(id)
-);
-
----
-
-# Seed Data
-
-## Wilayah
-
-* Surabaya
-* Sidoarjo
-* Gresik
-* Malang
-* Pasuruan
-* Probolinggo
-* Jember
-* Banyuwangi
-* Sumenep
-* Pamekasan
-* Sampang
-* Bangkalan
-
----
-
-## Sumber Leads
-
-* WhatsApp
-* Website
-* Instagram
-* Facebook
-* TikTok
-* Google Ads
-* Event
-* Referensi
-* Telepon
-* Walk In
-* Lainnya
-
----
-
-# Folder Structure
-
-lib/
-
-core/
-
-constants/
-
-theme/
-
-utils/
-
-database/
-
-database_helper.dart
-
-seed_data.dart
-
-models/
-
-wilayah_model.dart
-
-sumber_leads_model.dart
-
-leads_model.dart
-
-services/
-
-backup_service.dart
-
-restore_service.dart
-
-excel_service.dart
-
-pdf_service.dart
-
-report_service.dart
-
-providers/
-
-dashboard_provider.dart
-
-leads_provider.dart
-
-laporan_provider.dart
-
-settings_provider.dart
-
-screens/
-
-home/
-
-add_data/
-
-laporan/
-
-settings/
-
-widgets/
-
-summary_card.dart
-
-chart_card.dart
-
-custom_dropdown.dart
-
-custom_button.dart
-
-empty_state.dart
-
-routes/
-
-app_routes.dart
-
-main.dart
-
----
-
-# Required Packages
-
-dependencies:
-
-flutter:
-sdk: flutter
-
-provider:
-
-sqflite:
-
-path:
-
-path_provider:
-
-intl:
-
-fl_chart:
-
-file_picker:
-
-share_plus:
-
-excel:
-
-pdf:
-
-printing:
-
----
-
-# UI Design Requirements
-
-Material 3
-
-Responsive
-
-Modern Dashboard
-
-Card Radius:
-
-16
-
-Padding:
-
-16
-
-Spacing:
-
-12
-
-Color:
-
-Primary:
-#0F4C81
-
-Secondary:
-#3AAFA9
-
-Background:
-#F5F7FA
-
-Success:
-#4CAF50
-
-Warning:
-#FF9800
-
-Danger:
-#F44336
-
----
-
-# Error Handling
-
-Wajib menangani:
-
-* Database gagal dibuka
-* Database kosong
-* File JSON rusak
-* Restore gagal
-* Export gagal
-* Input kosong
-
-Gunakan Snackbar untuk feedback.
-
----
-
-# Performance
-
-Target:
-
-* Startup < 2 detik
-* Data 10.000 record tetap lancar
-* Query menggunakan index
-
-Tambahkan index:
-
-CREATE INDEX idx_leads_tanggal ON leads(tanggal);
-
-CREATE INDEX idx_leads_wilayah ON leads(wilayah_id);
-
-CREATE INDEX idx_leads_sumber ON leads(sumber_id);
-
----
-
-# Deliverables
-
-AI Agent harus menghasilkan:
-
-1. Flutter project lengkap
-2. SQLite implementation
-3. Provider state management
-4. Dashboard
-5. Grafik
-6. CRUD Leads
-7. Filter laporan
-8. Export Excel
-9. Export PDF
-10. Backup JSON
-11. Restore JSON
-12. Seed data otomatis
-13. Error handling
-14. Material 3 UI
-15. Ready build APK
-
-Build Command:
-
-flutter pub get
-
-flutter run
-
-flutter build apk --release
-
-Aplikasi harus dapat dijalankan tanpa konfigurasi tambahan.
+## 🔑 Akun Login Bawaan untuk Uji Coba Pertama Kali
+Ketika database baru terbentuk, sistem akan otomatis membuatkan akun demo berikut:
+*   **Akun Administrator**: Username `admin` / Password `@admin-+1`
+*   **Akun Karyawan Marketing**: Username `anwar` / Password `karyawan123`
+*   **Akun Karyawan Tour**: Username `budi` / Password `karyawan123`
+*   **Akun Owner**: Username `owner` / Password `@owner-+1`

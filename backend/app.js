@@ -34,6 +34,19 @@ app.use((req, res) => {
   });
 });
 
+// ===== Frontend production build =====
+const path = require('path');
+const frontendDistPath = path.join(__dirname, '../web-frontend/dist');
+app.use(express.static(frontendDistPath));
+
+// React Router fallback: semua rute non-API diarahkan ke index.html
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
+
 // ===== Global error handler =====
 app.use((err, req, res, next) => {
   console.error('🔥 Error:', err);
