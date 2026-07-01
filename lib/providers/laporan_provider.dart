@@ -4,7 +4,6 @@ import '../models/leads_model.dart';
 import '../models/leads_tour_model.dart';
 import '../services/report_service.dart';
 import '../services/excel_service.dart';
-import '../services/pdf_service.dart';
 
 class LaporanProvider extends ChangeNotifier {
   final ReportService _reportService = ReportService();
@@ -214,19 +213,5 @@ class LaporanProvider extends ChangeNotifier {
       'bestSumber': _bestSumber,
     };
     return await excelService.exportToExcel(_filteredLeads, stats, division: _currentDivision);
-  }
-
-  Future<String?> exportPdf() async {
-    final PdfService pdfService = PdfService();
-    final stats = {
-      'totalLeads': _totalLeads,
-      'averageLeads': _averageLeads,
-      'totalActiveDays': _totalActiveDays,
-      'bestWilayah': _bestWilayah,
-      'bestSumber': _bestSumber,
-    };
-    final df = DateFormat('dd/MM/yyyy');
-    final periodText = '${df.format(_startDate)} s/d ${df.format(_endDate)}';
-    return await pdfService.exportToPdf(_filteredLeads, stats, periodText, division: _currentDivision);
   }
 }

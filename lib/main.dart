@@ -6,7 +6,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'providers/leads_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/laporan_provider.dart';
-import 'providers/settings_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
@@ -28,7 +27,6 @@ void main() {
         ChangeNotifierProvider(create: (_) => LeadsProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => LaporanProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: const LeadsMonitoringApp(),
     ),
