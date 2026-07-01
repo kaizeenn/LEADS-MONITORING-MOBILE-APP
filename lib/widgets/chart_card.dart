@@ -71,6 +71,14 @@ class DailyTrendChart extends StatelessWidget {
       return FlSpot(i.toDouble(), val);
     });
 
+    final finalSpots = [...spots];
+    if (spots.length == 1) {
+      finalSpots.add(FlSpot(1.0, spots.first.y));
+    }
+
+    final double minX = 0;
+    final double maxX = data.length > 1 ? (data.length - 1).toDouble() : 1.0;
+
     return LineChart(
       LineChartData(
         gridData: FlGridData(
@@ -113,20 +121,29 @@ class DailyTrendChart extends StatelessWidget {
                     ),
                   );
                 }
+                if (idx == 1 && data.length == 1) {
+                  return SideTitleWidget(
+                    meta: meta,
+                    child: Text(
+                      data[0]['label'] as String,
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                    ),
+                  );
+                }
                 return const SizedBox.shrink();
               },
             ),
           ),
         ),
         borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: (data.length - 1).toDouble(),
+        minX: minX,
+        maxX: maxX,
         minY: 0,
         maxY: maxY,
         lineBarsData: [
           LineChartBarData(
-            spots: spots,
-            isCurved: true,
+            spots: finalSpots,
+            isCurved: data.length > 1,
             gradient: const LinearGradient(
               colors: [AppColors.primary, AppColors.secondary],
             ),

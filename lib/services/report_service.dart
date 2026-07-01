@@ -98,9 +98,9 @@ class ReportService {
           'year_total': data['yearTotal'] as int? ?? 0,
           'best_wilayah': data['bestWilayah'] as String? ?? '-',
           'best_sumber': data['bestSumber'] as String? ?? '-',
-          'daily_trend': List<Map<String, dynamic>>.from(data['dailyTrend'] ?? []),
-          'wilayah_chart': List<Map<String, dynamic>>.from(data['wilayahChart'] ?? []),
-          'sumber_chart': List<Map<String, dynamic>>.from(data['sumberChart'] ?? []),
+          'daily_trend': (data['dailyTrend'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
+          'wilayah_chart': (data['wilayahChart'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
+          'sumber_chart': (data['sumberChart'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
         };
       } else {
         throw Exception('Failed to load dashboard stats');
