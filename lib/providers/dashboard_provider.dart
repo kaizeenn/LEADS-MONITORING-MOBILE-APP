@@ -12,6 +12,7 @@ class DashboardProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _dailyTrend = [];
   List<Map<String, dynamic>> _wilayahChart = [];
   List<Map<String, dynamic>> _sumberChart = [];
+  List<Map<String, dynamic>> _leaderboard = [];
   bool _isLoading = false;
   String _currentDivision = 'marketing';
 
@@ -23,6 +24,7 @@ class DashboardProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get dailyTrend => _dailyTrend;
   List<Map<String, dynamic>> get wilayahChart => _wilayahChart;
   List<Map<String, dynamic>> get sumberChart => _sumberChart;
+  List<Map<String, dynamic>> get leaderboard => _leaderboard;
   bool get isLoading => _isLoading;
   String get currentDivision => _currentDivision;
 
@@ -66,6 +68,13 @@ class DashboardProvider extends ChangeNotifier {
         _sumberChart = sumberData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       } else {
         _sumberChart = [];
+      }
+
+      final leaderboardData = stats['leaderboard'];
+      if (leaderboardData is List) {
+        _leaderboard = leaderboardData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else {
+        _leaderboard = [];
       }
     } catch (e) {
       print('Error refreshing dashboard: $e');

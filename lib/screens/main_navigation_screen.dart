@@ -612,6 +612,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 Icons.campaign_rounded,
                 const Color(0xFF9C27B0),
               ),
+              if (showTabs && dashboardProvider.leaderboard.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildLeaderboardCard(dashboardProvider.leaderboard),
+              ],
               const SizedBox(height: 24),
 
               // 3. View Mode Toggle (Data List vs Charts)
@@ -951,6 +955,106 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardCard(List<Map<String, dynamic>> leaderboard) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Leaderboard Input Karyawan',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.onBackground,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: leaderboard.length,
+            separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.border),
+            itemBuilder: (context, index) {
+              final item = leaderboard[index];
+              final name = item['name'] as String? ?? '-';
+              final total = int.tryParse(item['total']?.toString() ?? '0') ?? 0;
+
+              Color rankColor = const Color(0xFF64748B);
+              Color rankBg = const Color(0xFFF1F5F9);
+              if (index == 0) {
+                rankColor = const Color(0xFFB45309);
+                rankBg = const Color(0xFFFEF3C7);
+              } else if (index == 1) {
+                rankColor = const Color(0xFF475569);
+                rankBg = const Color(0xFFE2E8F0);
+              } else if (index == 2) {
+                rankColor = const Color(0xFF78350F);
+                rankBg = const Color(0xFFFFEDD5);
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: rankBg,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: rankColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onBackground,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      '$total Leads',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
