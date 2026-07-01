@@ -27,14 +27,14 @@ Folder aplikasi HP (Flutter) tidak perlu diunggah karena server tidak bisa menja
 ### ✅ HARUS Dikirim ke Server (VPS)
 Hanya dua folder ini saja yang akan kita jalankan di server:
 1.  Folder **`backend/`** (kecuali folder `node_modules` di dalamnya karena ukurannya besar, nanti akan kita instal langsung di server).
-2.  Folder **`web-frontend/dist/`** (hasil file web jadi setelah dikompilasi).
+2.  Folder **`frontend/dist/`** (hasil file web jadi setelah dikompilasi).
 
 ---
 
 ## ⚙️ LANGKAH 1: Persiapan di Laptop Lokal
 
 ### A. Sambungkan Alamat Web ke Server Baru
-1. Buka folder utama proyek Anda di laptop, lalu masuk ke folder `web-frontend/src/`.
+1. Buka folder utama proyek Anda di laptop, lalu masuk ke folder `frontend/src/`.
 2. Buka file bernama `App.jsx` menggunakan editor teks (Notepad, VS Code, dll).
 3. Cari baris **27** yang tertulis:
    `const API_URL = 'http://localhost:3000/api';`
@@ -46,18 +46,18 @@ Hanya dua folder ini saja yang akan kita jalankan di server:
 
 ### B. Kompilasi Halaman Web
 1. Buka Terminal/Command Prompt di laptop Anda.
-2. Arahkan terminal masuk ke dalam folder `web-frontend` proyek Anda:
+2. Arahkan terminal masuk ke dalam folder `frontend` proyek Anda:
    ```bash
-   # Masuk ke folder web-frontend proyek Anda
-   cd [JALUR_FOLDER_PROYEK_ANDA]/web-frontend
+   # Masuk ke folder frontend proyek Anda
+   cd [JALUR_FOLDER_PROYEK_ANDA]/frontend
    ```
-   *(Tips: Anda juga bisa membuka folder `web-frontend` di File Explorer, klik kanan, lalu pilih "Open in Terminal" atau "Buka di Terminal")*
+   *(Tips: Anda juga bisa membuka folder `frontend` di File Explorer, klik kanan, lalu pilih "Open in Terminal" atau "Buka di Terminal")*
 3. Jalankan perintah ini untuk merakit halaman web:
    ```bash
    npm install
    npm run build
    ```
-4. Setelah selesai, Anda akan melihat folder baru bernama `dist` muncul di dalam folder `web-frontend`.
+4. Setelah selesai, Anda akan melihat folder baru bernama `dist` muncul di dalam folder `frontend`.
 
 ### C. Sambungkan Halaman Web ke Backend
 Agar Anda tidak perlu menyewa domain/port tambahan untuk web, kita akan menyatukan halaman web ke dalam backend.
@@ -68,7 +68,7 @@ Agar Anda tidak perlu menyewa domain/port tambahan untuk web, kita akan menyatuk
    ```javascript
    // ===== Mengarahkan server untuk membaca halaman web dashboard =====
    const path = require('path');
-   const frontendDistPath = path.join(__dirname, '../web-frontend/dist');
+   const frontendDistPath = path.join(__dirname, '../frontend/dist');
    app.use(express.static(frontendDistPath));
 
    app.get('*', (req, res, next) => {
@@ -96,11 +96,11 @@ Kita akan menggunakan aplikasi **FileZilla** agar proses pengiriman file semudah
 5. Di dalam `/var/www/`, buat folder baru bernama `leads-monitoring`.
 6. Di dalam `/var/www/leads-monitoring/`, buat dua folder baru:
    *   `backend`
-   *   `web-frontend` (di dalam `web-frontend`, buat lagi folder `dist`)
+   *   `frontend` (di dalam `frontend`, buat lagi folder `dist`)
 7. Di panel sebelah kiri (Laptop Anda), cari lokasi file proyek Anda.
 8. **Kirim file**:
    *   Seret (*drag*) semua file dari folder **`backend`** laptop Anda (KECUALI folder `node_modules` dan file `.env`) dan lepaskan (*drop*) ke folder `/var/www/leads-monitoring/backend/` di server.
-   *   Seret isi dari folder **`web-frontend/dist`** laptop Anda dan masukkan ke folder `/var/www/leads-monitoring/web-frontend/dist/` di server.
+   *   Seret isi dari folder **`frontend/dist`** laptop Anda dan masukkan ke folder `/var/www/leads-monitoring/frontend/dist/` di server.
 
 ---
 

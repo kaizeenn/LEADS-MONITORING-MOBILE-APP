@@ -1,97 +1,95 @@
-const express = require('express');
-const router = express.Router();
+/**
+ * Route data leads marketing.
+ * Endpoint: /api/leads/...
+ */
+const express  = require('express');
+const router   = express.Router();
 const { Lead } = require('../models');
+const { ok, fail }          = require('../utils/response');
 const { authenticateToken } = require('../middleware/auth');
 
-// Get all leads (with filters)
+// ===== GET /api/leads =====
+// Ambil semua leads marketing dengan filter opsional.
 router.get('/', authenticateToken, async (req, res) => {
   const { user_id, wilayah_id, sumber_id, startDate, endDate } = req.query;
 
   try {
     const rows = await Lead.getFiltered({
-      userRole: req.user.role,
-      userId: req.user.id,
+      userRole:     req.user.role,
+      userId:       req.user.id,
       filterUserId: user_id,
-      wilayahId: wilayah_id,
-      sumberId: sumber_id,
+      wilayahId:    wilayah_id,
+      sumberId:     sumber_id,
       startDate,
-      endDate
+      endDate,
     });
-    res.json(rows);
+    return ok(res, rows);
   } catch (error) {
-    res.status(500).json({ error: 'Gagal mengambil data leads.' });
+    return fail(res, 'Gagal mengambil data leads.', 500, error.message);
   }
 });
 
-// Create lead
+// ===== POST /api/leads =====
+// Tambah data lead baru.
 router.post('/', authenticateToken, async (req, res) => {
   const { wilayah_id, sumber_id, tanggal, jumlah } = req.body;
 
   if (!wilayah_id || !sumber_id || !tanggal || jumlah === undefined) {
-    return res.status(400).json({ error: 'Semua kolom data leads wajib diisi.' });
+    return fail(res, 'Semua kolom data leads wajib diisi.');
   }
 
   const creatorId = req.user.id;
 
   try {
     const insertId = await Lead.create(wilayah_id, sumber_id, creatorId, tanggal, jumlah);
-    res.status(201).json({
-      id: insertId,
-      wilayah_id,
-      sumber_id,
-      user_id: creatorId,
-      tanggal,
-      jumlah
-    });
+    return ok(res, { id: insertId, wilayah_id, sumber_id, user_id: creatorId, tanggal, jumlah }, 'Data lead berhasil ditambahkan.', 201);
   } catch (error) {
-    res.status(500).json({ error: 'Gagal menambahkan data leads.' });
+    return fail(res, 'Gagal menambahkan data leads.', 500, error.message);
   }
 });
 
-// Update lead
+// ===== PUT /api/leads/:id =====
+// Perbarui data lead. Karyawan hanya bisa edit milik sendiri.
 router.put('/:id', authenticateToken, async (req, res) => {
-  const { id } = req.params;
+  const { id }                               = req.params;
   const { wilayah_id, sumber_id, tanggal, jumlah } = req.body;
 
   if (!wilayah_id || !sumber_id || !tanggal || jumlah === undefined) {
-    return res.status(400).json({ error: 'Semua kolom data leads wajib diisi.' });
+    return fail(res, 'Semua kolom data leads wajib diisi.');
   }
 
   try {
     const lead = await Lead.findById(id);
-    if (!lead) {
-      return res.status(404).json({ error: 'Data lead tidak ditemukan.' });
-    }
+    if (!lead) return fail(res, 'Data lead tidak ditemukan.', 404);
 
-    if (req.user.role !== 'admin' && lead.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Anda tidak memiliki hak untuk mengedit data lead orang lain.' });
+    if (req.user.role === 'karyawan' && lead.user_id !== req.user.id) {
+      return fail(res, 'Anda tidak memiliki hak untuk mengedit data lead orang lain.', 403);
     }
 
     await Lead.update(id, wilayah_id, sumber_id, tanggal, jumlah);
-    res.json({ message: 'Data lead berhasil diperbarui.' });
+    return ok(res, null, 'Data lead berhasil diperbarui.');
   } catch (error) {
-    res.status(500).json({ error: 'Gagal memperbarui data lead.' });
+    return fail(res, 'Gagal memperbarui data lead.', 500, error.message);
   }
 });
 
-// Delete lead
+// ===== DELETE /api/leads/:id =====
+// Hapus data lead. Karyawan hanya bisa hapus milik sendiri.
 router.delete('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
     const lead = await Lead.findById(id);
-    if (!lead) {
-      return res.status(404).json({ error: 'Data lead tidak ditemukan.' });
-    }
+    if (!lead) return fail(res, 'Data lead tidak ditemukan.', 404);
 
-    if (req.user.role !== 'admin' && lead.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Anda tidak memiliki hak untuk menghapus data lead orang lain.' });
+    if (req.user.role === 'karyawan' && lead.user_id !== req.user.id) {
+      return fail(res, 'Anda tidak memiliki hak untuk menghapus data lead orang lain.', 403);
     }
 
     await Lead.delete(id);
-    res.json({ message: 'Data lead berhasil dihapus.' });
+    return ok(res, null, 'Data lead berhasil dihapus.');
   } catch (error) {
-    res.status(500).json({ error: 'Gagal menghapus data lead.' });
+    return fail(res, 'Gagal menghapus data lead.', 500, error.message);
   }
 });
 

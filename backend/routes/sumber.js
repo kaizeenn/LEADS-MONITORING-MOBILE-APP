@@ -1,49 +1,56 @@
-const express = require('express');
-const router = express.Router();
+/**
+ * Route manajemen sumber leads.
+ * Endpoint: /api/sumber/...
+ */
+const express         = require('express');
+const router          = express.Router();
 const { SumberLeads } = require('../models');
+const { ok, fail }                       = require('../utils/response');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-// Get all lead sources
+// ===== GET /api/sumber =====
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const list = await SumberLeads.getAll();
-    res.json(list);
+    return ok(res, list);
   } catch (error) {
-    res.status(500).json({ error: 'Gagal mengambil data sumber.' });
+    return fail(res, 'Gagal mengambil data sumber leads.', 500, error.message);
   }
 });
 
-// Admin: Create lead source
+// ===== POST /api/sumber =====
+// Admin: tambah sumber leads baru.
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   const { nama_sumber } = req.body;
   if (!nama_sumber || nama_sumber.trim() === '') {
-    return res.status(400).json({ error: 'Nama sumber wajib diisi.' });
+    return fail(res, 'Nama sumber wajib diisi.');
   }
 
   try {
     const insertId = await SumberLeads.create(nama_sumber.trim());
-    res.status(201).json({ id: insertId, nama_sumber });
+    return ok(res, { id: insertId, nama_sumber }, 'Sumber leads berhasil ditambahkan.', 201);
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Sumber sudah terdaftar.' });
+      return fail(res, 'Sumber sudah terdaftar.');
     }
-    res.status(500).json({ error: 'Gagal menambahkan sumber leads.' });
+    return fail(res, 'Gagal menambahkan sumber leads.', 500, error.message);
   }
 });
 
-// Admin: Delete lead source
+// ===== DELETE /api/sumber/:id =====
+// Admin: hapus sumber leads.
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     const isLinked = await SumberLeads.isLinkedToLeads(id);
     if (isLinked) {
-      return res.status(400).json({ error: 'Sumber tidak bisa dihapus karena sedang digunakan oleh data leads.' });
+      return fail(res, 'Sumber tidak bisa dihapus karena sedang digunakan oleh data leads.');
     }
 
     await SumberLeads.delete(id);
-    res.json({ message: 'Sumber berhasil dihapus.' });
+    return ok(res, null, 'Sumber leads berhasil dihapus.');
   } catch (error) {
-    res.status(500).json({ error: 'Gagal menghapus sumber leads.' });
+    return fail(res, 'Gagal menghapus sumber leads.', 500, error.message);
   }
 });
 

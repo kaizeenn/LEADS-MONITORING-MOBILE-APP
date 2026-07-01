@@ -39,7 +39,7 @@ def upload_backend(ssh):
     sftp = ssh.open_sftp()
     
     # Buat direktori jika belum ada
-    run(ssh, f"mkdir -p {VPS_APP_DIR}/backend {VPS_APP_DIR}/web-frontend/dist", show=False)
+    run(ssh, f"mkdir -p {VPS_APP_DIR}/backend {VPS_APP_DIR}/frontend/dist", show=False)
     
     backend_dir = os.path.join(LOCAL_PROJECT, "backend")
     vps_backend = f"{VPS_APP_DIR}/backend"
@@ -50,35 +50,35 @@ def upload_backend(ssh):
     
     uploaded = 0
     for root, dirs, files in os.walk(backend_dir):
-        dirs[:] = [d for d in dirs if d not in skip_dirs]
-        rel_root = os.path.relpath(root, backend_dir)
-        vps_root = f"{vps_backend}/{rel_root}" if rel_root != '.' else vps_backend
-        
+      dirs[:] = [d for d in dirs if d not in skip_dirs]
+      rel_root = os.path.relpath(root, backend_dir)
+      vps_root = f"{vps_backend}/{rel_root}" if rel_root != '.' else vps_backend
+      
+      try:
+        sftp.mkdir(vps_root)
+      except:
+        pass
+      
+      for fname in files:
+        if fname in skip_files:
+          continue
+        local_path = os.path.join(root, fname)
+        vps_path = f"{vps_root}/{fname}"
         try:
-            sftp.mkdir(vps_root)
-        except:
-            pass
-        
-        for fname in files:
-            if fname in skip_files:
-                continue
-            local_path = os.path.join(root, fname)
-            vps_path = f"{vps_root}/{fname}"
-            try:
-                sftp.put(local_path, vps_path)
-                uploaded += 1
-            except Exception as e:
-                print(f"  ⚠️ Skip {fname}: {e}")
-                
+          sftp.put(local_path, vps_path)
+          uploaded += 1
+        except Exception as e:
+          print(f"  ⚠️ Skip {fname}: {e}")
+              
     print(f"  ✅ Total {uploaded} files uploaded ke backend")
     sftp.close()
 
 def upload_frontend_dist(ssh):
-    """Upload folder web-frontend/dist ke VPS"""
+    """Upload folder frontend/dist ke VPS"""
     sftp = ssh.open_sftp()
     
-    dist_dir = os.path.join(LOCAL_PROJECT, "web-frontend", "dist")
-    vps_dist = f"{VPS_APP_DIR}/web-frontend/dist"
+    dist_dir = os.path.join(LOCAL_PROJECT, "frontend", "dist")
+    vps_dist = f"{VPS_APP_DIR}/frontend/dist"
     
     run(ssh, f"rm -rf {vps_dist} && mkdir -p {vps_dist}", show=False)
     
