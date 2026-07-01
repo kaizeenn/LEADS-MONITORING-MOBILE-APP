@@ -65,23 +65,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   // Logo/Icon
                   Center(
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.directions_bus_rounded,
-                        color: AppColors.primary,
-                        size: 36,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        'assets/icon/app_icon.png',
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'Leads Monitoring',
+                    'Rekap Leads',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 26,
