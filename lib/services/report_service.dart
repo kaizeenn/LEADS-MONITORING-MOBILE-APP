@@ -6,6 +6,16 @@ import '../models/leads_tour_model.dart';
 class ReportService {
   static const String apiBaseUrl = 'http://localhost:3000/api';
 
+  int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
   // Fetch all leads with details
   Future<List<LeadsModel>> getLeadsWithDetails(String token) async {
     try {
@@ -93,14 +103,32 @@ class ReportService {
         final data = json.decode(response.body);
         
         return {
-          'today_total': data['todayTotal'] as int? ?? 0,
-          'month_total': data['monthTotal'] as int? ?? 0,
-          'year_total': data['yearTotal'] as int? ?? 0,
+          'today_total': _parseInt(data['todayTotal']),
+          'month_total': _parseInt(data['monthTotal']),
+          'year_total': _parseInt(data['yearTotal']),
           'best_wilayah': data['bestWilayah'] as String? ?? '-',
           'best_sumber': data['bestSumber'] as String? ?? '-',
-          'daily_trend': (data['dailyTrend'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
-          'wilayah_chart': (data['wilayahChart'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
-          'sumber_chart': (data['sumberChart'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
+          'daily_trend': (data['dailyTrend'] as List<dynamic>?)?.map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            return {
+              ...m,
+              'total': _parseInt(m['total']),
+            };
+          }).toList() ?? [],
+          'wilayah_chart': (data['wilayahChart'] as List<dynamic>?)?.map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            return {
+              ...m,
+              'total': _parseInt(m['total']),
+            };
+          }).toList() ?? [],
+          'sumber_chart': (data['sumberChart'] as List<dynamic>?)?.map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            return {
+              ...m,
+              'total': _parseInt(m['total']),
+            };
+          }).toList() ?? [],
         };
       } else {
         throw Exception('Failed to load dashboard stats');

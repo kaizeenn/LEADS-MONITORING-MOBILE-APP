@@ -46,9 +46,27 @@ class DashboardProvider extends ChangeNotifier {
       _yearTotal = stats['year_total'] as int? ?? 0;
       _bestWilayah = stats['best_wilayah'] as String? ?? '-';
       _bestSumber = stats['best_sumber'] as String? ?? '-';
-      _dailyTrend = List<Map<String, dynamic>>.from(stats['daily_trend']);
-      _wilayahChart = List<Map<String, dynamic>>.from(stats['wilayah_chart']);
-      _sumberChart = List<Map<String, dynamic>>.from(stats['sumber_chart']);
+      
+      final trendData = stats['daily_trend'];
+      if (trendData is List) {
+        _dailyTrend = trendData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else {
+        _dailyTrend = [];
+      }
+
+      final wilayahData = stats['wilayah_chart'];
+      if (wilayahData is List) {
+        _wilayahChart = wilayahData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else {
+        _wilayahChart = [];
+      }
+
+      final sumberData = stats['sumber_chart'];
+      if (sumberData is List) {
+        _sumberChart = sumberData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else {
+        _sumberChart = [];
+      }
     } catch (e) {
       print('Error refreshing dashboard: $e');
     } finally {
