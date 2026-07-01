@@ -768,7 +768,7 @@ export default function App() {
                 <input 
                   type="password" 
                   className="form-control has-icon" 
-                  placeholder="••••••••"
+                  placeholder="Masukkan password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   required
