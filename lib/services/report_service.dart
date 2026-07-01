@@ -2,9 +2,20 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/leads_model.dart';
 import '../models/leads_tour_model.dart';
+import '../config/app_config.dart';
 
 class ReportService {
-  static const String apiBaseUrl = 'http://localhost:3000/api';
+  static const String apiBaseUrl = AppConfig.apiBaseUrl;
+
+  List<dynamic> _unwrapListResponse(dynamic body) {
+    if (body is Map<String, dynamic> && body['data'] is List<dynamic>) {
+      return body['data'] as List<dynamic>;
+    }
+    if (body is List<dynamic>) {
+      return body;
+    }
+    return const [];
+  }
 
   int _parseInt(dynamic value) {
     if (value == null) return 0;
@@ -28,7 +39,8 @@ class ReportService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final dynamic body = json.decode(response.body);
+        final List<dynamic> data = _unwrapListResponse(body);
         return data.map((e) => LeadsModel.fromMap(e)).toList();
       } else {
         throw Exception('Failed to load leads from server');
@@ -56,11 +68,14 @@ class ReportService {
       if (division == 'marketing') {
         if (wilayahId != null) queryParams.add('wilayah_id=$wilayahId');
       } else {
-        if (lokasi != null && lokasi.isNotEmpty) queryParams.add('lokasi=$lokasi');
+        if (lokasi != null && lokasi.isNotEmpty)
+          queryParams.add('lokasi=$lokasi');
       }
       if (sumberId != null) queryParams.add('sumber_id=$sumberId');
 
-      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final queryString = queryParams.isNotEmpty
+          ? '?${queryParams.join('&')}'
+          : '';
       final endpoint = division == 'marketing' ? '/leads' : '/leads-tour';
 
       final response = await http.get(
@@ -72,7 +87,8 @@ class ReportService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final dynamic body = json.decode(response.body);
+        final List<dynamic> data = _unwrapListResponse(body);
         if (division == 'marketing') {
           return data.map((e) => LeadsModel.fromMap(e)).toList();
         } else {
@@ -88,9 +104,14 @@ class ReportService {
   }
 
   // Get dashboard statistics
-  Future<Map<String, dynamic>> getDashboardStats(String token, {String division = 'marketing'}) async {
+  Future<Map<String, dynamic>> getDashboardStats(
+    String token, {
+    String division = 'marketing',
+  }) async {
     try {
-      final endpoint = division == 'marketing' ? '/dashboard' : '/dashboard-tour';
+      final endpoint = division == 'marketing'
+          ? '/dashboard'
+          : '/dashboard-tour';
       final response = await http.get(
         Uri.parse('$apiBaseUrl$endpoint'),
         headers: {
@@ -100,35 +121,36 @@ class ReportService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        
+        final dynamic body = json.decode(response.body);
+        final data =
+            body is Map<String, dynamic> && body['data'] is Map<String, dynamic>
+            ? body['data'] as Map<String, dynamic>
+            : body;
+
         return {
           'today_total': _parseInt(data['todayTotal']),
           'month_total': _parseInt(data['monthTotal']),
           'year_total': _parseInt(data['yearTotal']),
           'best_wilayah': data['bestWilayah'] as String? ?? '-',
           'best_sumber': data['bestSumber'] as String? ?? '-',
-          'daily_trend': (data['dailyTrend'] as List<dynamic>?)?.map((e) {
-            final m = Map<String, dynamic>.from(e as Map);
-            return {
-              ...m,
-              'total': _parseInt(m['total']),
-            };
-          }).toList() ?? [],
-          'wilayah_chart': (data['wilayahChart'] as List<dynamic>?)?.map((e) {
-            final m = Map<String, dynamic>.from(e as Map);
-            return {
-              ...m,
-              'total': _parseInt(m['total']),
-            };
-          }).toList() ?? [],
-          'sumber_chart': (data['sumberChart'] as List<dynamic>?)?.map((e) {
-            final m = Map<String, dynamic>.from(e as Map);
-            return {
-              ...m,
-              'total': _parseInt(m['total']),
-            };
-          }).toList() ?? [],
+          'daily_trend':
+              (data['dailyTrend'] as List<dynamic>?)?.map((e) {
+                final m = Map<String, dynamic>.from(e as Map);
+                return {...m, 'total': _parseInt(m['total'])};
+              }).toList() ??
+              [],
+          'wilayah_chart':
+              (data['wilayahChart'] as List<dynamic>?)?.map((e) {
+                final m = Map<String, dynamic>.from(e as Map);
+                return {...m, 'total': _parseInt(m['total'])};
+              }).toList() ??
+              [],
+          'sumber_chart':
+              (data['sumberChart'] as List<dynamic>?)?.map((e) {
+                final m = Map<String, dynamic>.from(e as Map);
+                return {...m, 'total': _parseInt(m['total'])};
+              }).toList() ??
+              [],
         };
       } else {
         throw Exception('Failed to load dashboard stats');

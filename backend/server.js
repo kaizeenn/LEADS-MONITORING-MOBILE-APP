@@ -9,8 +9,8 @@ require('dotenv').config();
 const app = require('./app');
 const { testConnection } = require('./config/db');
 
-// PORT default backend adalah 18791.
-const PORT = process.env.PORT || 18791;
+// PORT default backend adalah 3000.
+const PORT = process.env.PORT || 3000;
 
 // Dibungkus async function karena sebelum listen kita cek database dulu.
 (async () => {
@@ -30,6 +30,7 @@ const PORT = process.env.PORT || 18791;
     console.log(`  📍 http://localhost:${PORT}`);
     console.log(`  🔧 Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log(`  ❤️  Health: http://localhost:${PORT}/api/health`);
+    console.log(`  🌐 Web Dashboard: http://localhost:${PORT}`);
     console.log('═══════════════════════════════════════════════════');
     console.log('');
   });

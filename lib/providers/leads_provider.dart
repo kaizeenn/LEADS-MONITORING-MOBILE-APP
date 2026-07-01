@@ -7,9 +7,20 @@ import '../models/leads_model.dart';
 import '../models/leads_tour_model.dart';
 import '../models/wilayah_model.dart';
 import '../models/sumber_leads_model.dart';
+import '../config/app_config.dart';
 
 class LeadsProvider extends ChangeNotifier {
-  static const String apiBaseUrl = 'http://localhost:3000/api';
+  static const String apiBaseUrl = AppConfig.apiBaseUrl;
+
+  List<dynamic> _unwrapListResponse(dynamic body) {
+    if (body is Map<String, dynamic> && body['data'] is List<dynamic>) {
+      return body['data'] as List<dynamic>;
+    }
+    if (body is List<dynamic>) {
+      return body;
+    }
+    return const [];
+  }
 
   List<WilayahModel> _wilayahList = [];
   List<SumberLeadsModel> _sumberLeadsList = [];
@@ -34,17 +45,27 @@ class LeadsProvider extends ChangeNotifier {
       };
 
       // Load Wilayah from API
-      final resWilayah = await http.get(Uri.parse('$apiBaseUrl/wilayah'), headers: headers);
+      final resWilayah = await http.get(
+        Uri.parse('$apiBaseUrl/wilayah'),
+        headers: headers,
+      );
       if (resWilayah.statusCode == 200) {
-        final List<dynamic> data = json.decode(resWilayah.body);
+        final dynamic body = json.decode(resWilayah.body);
+        final List<dynamic> data = _unwrapListResponse(body);
         _wilayahList = data.map((e) => WilayahModel.fromMap(e)).toList();
       }
 
       // Load Sumber Leads from API
-      final resSumber = await http.get(Uri.parse('$apiBaseUrl/sumber'), headers: headers);
+      final resSumber = await http.get(
+        Uri.parse('$apiBaseUrl/sumber'),
+        headers: headers,
+      );
       if (resSumber.statusCode == 200) {
-        final List<dynamic> data = json.decode(resSumber.body);
-        _sumberLeadsList = data.map((e) => SumberLeadsModel.fromMap(e)).toList();
+        final dynamic body = json.decode(resSumber.body);
+        final List<dynamic> data = _unwrapListResponse(body);
+        _sumberLeadsList = data
+            .map((e) => SumberLeadsModel.fromMap(e))
+            .toList();
       }
 
       // Automatic import regions from the specified Excel file if present
@@ -123,7 +144,10 @@ class LeadsProvider extends ChangeNotifier {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         };
-        final resWilayah = await http.get(Uri.parse('$apiBaseUrl/wilayah'), headers: headers);
+        final resWilayah = await http.get(
+          Uri.parse('$apiBaseUrl/wilayah'),
+          headers: headers,
+        );
         if (resWilayah.statusCode == 200) {
           final List<dynamic> data = json.decode(resWilayah.body);
           _wilayahList = data.map((e) => WilayahModel.fromMap(e)).toList();
@@ -202,7 +226,8 @@ class LeadsProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> addLead(String token, {
+  Future<bool> addLead(
+    String token, {
     required int wilayahId,
     required int sumberId,
     required String tanggal,
@@ -302,7 +327,8 @@ class LeadsProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> addLeadTour(String token, {
+  Future<bool> addLeadTour(
+    String token, {
     required String lokasi,
     required int sumberId,
     required String tanggal,

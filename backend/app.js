@@ -18,9 +18,15 @@ const envOrigins = (process.env.FRONTEND_URL || '')
 
 const allowedOrigins = new Set([
   ...envOrigins,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
 ]);
+
+morgan.token('short-time', () => new Date().toLocaleTimeString('id-ID', {
+  hour12: false,
+}));
+
+morgan.token('short-url', (req) => req.originalUrl.split('?')[0]);
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -37,9 +43,7 @@ app.use(express.json({ limit: '10mb' }));
 // Supaya backend juga bisa membaca form-urlencoded bila diperlukan.
 app.use(express.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+app.use(morgan(':short-time :method :short-url :status :response-time ms'));
 
 // ===== Health check =====
 app.get('/api/health', (req, res) => {

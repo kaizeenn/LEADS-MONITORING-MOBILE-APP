@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://202.10.41.37:18791/api';
+// URL API:
+// - Di produksi (frontend di-serve oleh Express): gunakan '/api' (relatif, otomatis benar)
+// - Di development (npm run dev): Vite proxy di vite.config.js yang meneruskan ke backend
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('token');
@@ -29,7 +32,6 @@ async function request(path, options = {}) {
   const json = await res.json();
 
   if (!res.ok) {
-    // Pesan error bisa ada di json.error atau json.message
     throw new Error(json.error || json.message || 'Terjadi kesalahan pada server.');
   }
 
