@@ -8,30 +8,41 @@ async function request(path, options = {}) {
     ...options.headers,
   };
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (networkErr) {
+    // Gagal terhubung ke server (server mati, CORS preflight gagal, dll.)
+    throw new Error('Tidak dapat terhubung ke server. Pastikan server backend sedang berjalan.');
+  }
 
   if (res.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.reload();
-    throw new Error('Unauthorized');
+    throw new Error('Sesi habis. Silakan login ulang.');
   }
 
-  const data = await res.json();
+  const json = await res.json();
+
   if (!res.ok) {
-    throw new Error(data.error || 'Terjadi kesalahan pada server');
+    // Pesan error bisa ada di json.error atau json.message
+    throw new Error(json.error || json.message || 'Terjadi kesalahan pada server.');
   }
-  return data;
+
+  // Auto-unwrap: jika response menggunakan pola ok() helper { success, message, data },
+  // kembalikan hanya isi 'data'-nya. Kalau tidak ada field 'data', kembalikan json apa adanya.
+  return json.data !== undefined ? json.data : json;
 }
 
 const api = {
-  get: (path, options) => request(path, { ...options, method: 'GET' }),
-  post: (path, body, options) => request(path, { ...options, method: 'POST', body: JSON.stringify(body) }),
-  put: (path, body, options) => request(path, { ...options, method: 'PUT', body: JSON.stringify(body) }),
-  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
+  get:    (path, options)       => request(path, { ...options, method: 'GET' }),
+  post:   (path, body, options) => request(path, { ...options, method: 'POST',   body: JSON.stringify(body) }),
+  put:    (path, body, options) => request(path, { ...options, method: 'PUT',    body: JSON.stringify(body) }),
+  delete: (path, options)       => request(path, { ...options, method: 'DELETE' }),
 };
 
 export default api;

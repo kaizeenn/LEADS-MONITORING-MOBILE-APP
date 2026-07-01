@@ -141,19 +141,22 @@ export default function Dashboard() {
 
       const responses = await Promise.all(promises);
 
-      const dataStats = await responses[0].json();
-      const dataLeads = await responses[1].json();
-      const dataWilayah = await responses[2].json();
-      const dataSumber = await responses[3].json();
+      // Helper: auto-unwrap response dari ok() helper { success, message, data }
+      const unwrap = (json) => json.data !== undefined ? json.data : json;
 
-      if (responses[0].ok) setDashboardStats(dataStats);
-      if (responses[1].ok) setLeads(dataLeads);
-      if (responses[2].ok) setWilayah(dataWilayah);
-      if (responses[3].ok) setSumber(dataSumber);
+      const dataStats   = await responses[0].json();
+      const dataLeads   = await responses[1].json();
+      const dataWilayah = await responses[2].json();
+      const dataSumber  = await responses[3].json();
+
+      if (responses[0].ok) setDashboardStats(unwrap(dataStats));
+      if (responses[1].ok) setLeads(unwrap(dataLeads));
+      if (responses[2].ok) setWilayah(unwrap(dataWilayah));
+      if (responses[3].ok) setSumber(unwrap(dataSumber));
 
       if (isAdmin && responses[4]) {
         const dataUsers = await responses[4].json();
-        if (responses[4].ok) setUsersList(dataUsers);
+        if (responses[4].ok) setUsersList(unwrap(dataUsers));
       }
 
     } catch (error) {
