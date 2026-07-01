@@ -58,4 +58,27 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Admin: Change other user password
+router.put('/:id/password', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { password } = req.body;
+
+  if (!password || password.trim() === '') {
+    return res.status(400).json({ error: 'Password baru wajib diisi.' });
+  }
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User tidak ditemukan.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await User.updatePassword(id, hashedPassword);
+    res.json({ message: 'Password user berhasil diperbarui.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal memperbarui password user.' });
+  }
+});
+
 module.exports = router;

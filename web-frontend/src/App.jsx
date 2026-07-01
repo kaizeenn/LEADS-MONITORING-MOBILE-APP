@@ -19,7 +19,8 @@ import {
   FileText,
   Bus,
   FileSpreadsheet,
-  ChevronDown
+  ChevronDown,
+  Key
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -541,6 +542,33 @@ export default function App() {
       }
     } catch (e) {
       setUserError('Gagal terhubung ke server.');
+    }
+  };
+
+  const handleUpdateUserPassword = async (id) => {
+    const newPassword = prompt('Masukkan password baru untuk user ini:');
+    if (newPassword === null) return;
+    if (newPassword.trim() === '') {
+      showToast('Password baru tidak boleh kosong.', 'error');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/users/${id}/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: newPassword.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Password user berhasil diperbarui!', 'success');
+      } else {
+        showToast(data.error || 'Gagal mengubah password.', 'error');
+      }
+    } catch (e) {
+      showToast('Gagal terhubung ke server.', 'error');
     }
   };
 
@@ -1511,11 +1539,16 @@ export default function App() {
                       {u.bagian && <span className="badge" style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', background: 'rgba(13, 148, 136, 0.08)', color: 'var(--secondary)', marginLeft: '6px' }}>{u.bagian}</span>}
                     </div>
                   </div>
-                  {user.id !== u.id && (
-                    <button onClick={() => handleDeleteUser(u.id)} className="btn-icon btn-icon-danger" title="Hapus Akun">
-                      <Trash2 size={12} />
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button onClick={() => handleUpdateUserPassword(u.id)} className="btn-icon btn-icon-primary" title="Ubah Password" style={{ color: 'var(--primary)', background: 'rgba(13, 148, 136, 0.08)', border: 'none', borderRadius: '4px', padding: '6px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <Key size={12} />
                     </button>
-                  )}
+                    {user.id !== u.id && (
+                      <button onClick={() => handleDeleteUser(u.id)} className="btn-icon btn-icon-danger" title="Hapus Akun">
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

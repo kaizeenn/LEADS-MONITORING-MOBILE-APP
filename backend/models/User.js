@@ -28,10 +28,16 @@ async function deleteUser(id) {
   return result.affectedRows > 0;
 }
 
+async function updatePassword(id, hashedPassword) {
+  const [result] = await db.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, id]);
+  return result.affectedRows > 0;
+}
+
 module.exports = {
   findById,
   findByUsername,
   getAll,
   create,
-  delete: deleteUser
+  delete: deleteUser,
+  updatePassword
 };
