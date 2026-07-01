@@ -19,7 +19,7 @@ async function seedDatabase() {
       // 1. Check and Seed Users
       const [users] = await connection.query('SELECT * FROM users LIMIT 1');
       if (users.length === 0) {
-        const adminPass = bcrypt.hashSync('admin123', 10);
+        const adminPass = bcrypt.hashSync('@admin-+1', 10);
         const empAPass = bcrypt.hashSync('karyawan123', 10);
         const empBPass = bcrypt.hashSync('karyawan123', 10);
         const ownerPass = bcrypt.hashSync('owner123', 10);
