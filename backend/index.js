@@ -797,14 +797,14 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
       userParams
     );
 
-    // 7. Leaderboard (Admin Only)
+    // 7. Leaderboard (Admin / Owner Only)
     let leaderboard = [];
-    if (req.user.role === 'admin') {
+    if (req.user.role === 'admin' || req.user.role === 'owner') {
       const [rows] = await pool.query(
         `SELECT u.nama_lengkap as name, COALESCE(SUM(l.jumlah), 0) as total
          FROM users u
          LEFT JOIN leads l ON u.id = l.user_id
-         WHERE u.role = 'karyawan'
+         WHERE u.role = 'karyawan' AND u.bagian = 'marketing'
          GROUP BY u.id
          ORDER BY total DESC`
       );
