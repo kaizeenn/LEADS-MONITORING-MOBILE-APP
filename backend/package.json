@@ -2,10 +2,10 @@
   "name": "leads-monitoring-backend",
   "version": "1.0.0",
   "description": "Express API for Leads Monitoring Mobile and Web App",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
