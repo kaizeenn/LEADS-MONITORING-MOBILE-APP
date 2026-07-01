@@ -50,7 +50,7 @@ class LeadsMonitoringApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Leads Monitoring App',
+      title: 'Rekap Leads',
       theme: AppTheme.lightTheme,
       scrollBehavior: MyCustomScrollBehavior(),
       home: const AuthWrapper(),
