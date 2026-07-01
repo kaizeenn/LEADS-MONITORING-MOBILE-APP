@@ -42,8 +42,14 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        _token = storedToken;
-        _user = data['user'];
+        final userData = data['user'];
+        final role = userData['role'];
+        if (role == 'admin' || role == 'owner') {
+          await prefs.remove('token');
+        } else {
+          _token = storedToken;
+          _user = userData;
+        }
       } else {
         // Token expired or invalid
         await prefs.remove('token');
@@ -73,8 +79,16 @@ class AuthProvider extends ChangeNotifier {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
+        final userData = data['user'];
+        final role = userData['role'];
+        if (role == 'admin' || role == 'owner') {
+          _isLoading = false;
+          notifyListeners();
+          return {'success': false, 'error': 'Akses ditolak. Aplikasi ini khusus Karyawan.'};
+        }
+
         _token = data['token'];
-        _user = data['user'];
+        _user = userData;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', _token!);
