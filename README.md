@@ -232,10 +232,3 @@ File APK siap instal telah dibuat. Anda bisa mengambilnya di folder:
 Kirim file tersebut ke HP Android Anda lewat WhatsApp, Google Drive, atau kabel USB, lalu instal seperti biasa.
 
 ---
-
-## 🔑 Akun Login Bawaan untuk Uji Coba Pertama Kali
-Ketika database baru terbentuk, sistem akan otomatis membuatkan akun demo berikut:
-*   **Akun Administrator**: Username `admin` / Password `@admin-+1`
-*   **Akun Karyawan Marketing**: Username `anwar` / Password `karyawan123`
-*   **Akun Karyawan Tour**: Username `budi` / Password `karyawan123`
-*   **Akun Owner**: Username `owner` / Password `@owner-+1`
